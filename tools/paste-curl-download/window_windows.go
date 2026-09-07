@@ -28,7 +28,11 @@ func setAppUserModelID() {
 func runUI(rawURL string, done <-chan struct{}) {
 	setAppUserModelID()
 
-	dataDir := filepath.Join(os.TempDir(), "zoom-loader-webview2")
+	appdata := os.Getenv("APPDATA")
+	if appdata == "" {
+		appdata = os.TempDir()
+	}
+	dataDir := filepath.Join(appdata, "Zoom-loader", "webview2")
 	_ = os.MkdirAll(dataDir, 0o700)
 
 	w := webview2.NewWithOptions(webview2.WebViewOptions{

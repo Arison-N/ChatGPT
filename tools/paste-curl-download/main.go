@@ -175,7 +175,16 @@ func main() {
 		_, _ = w.Write(b)
 	})
 	mux.HandleFunc("/api/defaults", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]string{"downloadDir": defaultDownloadDir(), "version": Version})
+		writeJSON(w, 200, map[string]string{"downloadDir": rememberedDownloadDir(), "version": Version})
+	})
+	mux.HandleFunc("/api/remember-dir", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			DestDir string `json:"destDir"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		path := strings.TrimSpace(req.DestDir)
+		saveDestDir(path)
+		writeJSON(w, 200, map[string]string{"path": path})
 	})
 	mux.HandleFunc("/api/check-update", func(w http.ResponseWriter, r *http.Request) {
 		remote, _, err := fetchRemoteVersion()
@@ -256,6 +265,7 @@ func main() {
 			writeJSON(w, 200, map[string]any{"cancelled": true})
 			return
 		}
+		saveDestDir(path)
 		writeJSON(w, 200, map[string]string{"path": path})
 	})
 	mux.HandleFunc("/api/parse", func(w http.ResponseWriter, r *http.Request) {
@@ -325,6 +335,7 @@ func main() {
 			send(map[string]any{"type": "error", "message": err.Error()})
 			return
 		}
+		saveDestDir(dir)
 		send(map[string]any{"type": "done", "path": dest, "bytes": st.Size()})
 		runAfterDownload(dest, req.AfterAction)
 	})

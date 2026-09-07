@@ -24,27 +24,22 @@
       -moz-user-select: none;
     }
     body { display: flex; flex-direction: column; }
-    header { padding: 18px 22px 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .header-text { flex: 1; min-width: 0; }
-    header h1 { margin: 0; font-size: 18px; font-weight: 650; }
-    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
-    #lang {
-      background: var(--card); color: var(--ink); border: 1px solid var(--line);
-      border-radius: 8px; padding: 6px 8px; font: inherit; flex-shrink: 0;
-    }
+    header { padding: 18px 22px 8px; display: block; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 650; line-height: 1.35; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
     .update-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 22px 8px; }
     #updStatus { font-size: 12px; color: var(--muted); }
     main { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
     label { display: block; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-bottom: 6px; }
-    input, textarea, select {
+    main input, main textarea, main select {
       width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
       border-radius: 10px; padding: 10px 12px; font: inherit;
     }
-    input, textarea {
+    main input, main textarea {
       user-select: text;
       -webkit-user-select: text;
     }
-    input:focus, textarea:focus, select:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
+    main input:focus, main textarea:focus, main select:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
     #name { font-size: 18px; font-weight: 600; padding: 12px 14px; }
     textarea { flex: 1; min-height: 160px; resize: none; font-family: Consolas, "Courier New", monospace; font-size: 12px; }
     .hint, .curl-guide { font-size: 12px; color: var(--muted); }
@@ -52,9 +47,10 @@
     .curl-guide { margin: -2px 0 8px; }
     .chooser { display: flex; gap: 8px; align-items: stretch; }
     #dirpath {
-      flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line);
-      border-radius: 10px; padding: 10px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 1 1 auto; min-width: 0; width: auto;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    #browse { flex: 0 0 auto; white-space: nowrap; }
     .actions { display: flex; gap: 10px; align-items: center; }
     button {
       background: var(--accent); color: #fff; border: 0; border-radius: 10px;
@@ -71,11 +67,8 @@
 </head>
 <body>
   <header>
-    <div class="header-text">
-      <h1 data-i18n="heading"></h1>
-      <p data-i18n="sub"></p>
-    </div>
-    <select id="lang" aria-label="Language"></select>
+    <h1 data-i18n="heading"></h1>
+    <p data-i18n="sub"></p>
   </header>
   <div class="update-bar">
     <button id="checkUpdate" class="secondary" type="button" data-i18n="checkUpdate"></button>
@@ -91,7 +84,7 @@
     <div>
       <label data-i18n="location"></label>
       <div class="chooser">
-        <div id="dirpath"></div>
+        <input id="dirpath" type="text" spellcheck="false" autocomplete="off" />
         <button id="browse" class="secondary" type="button" data-i18n="chooseFolder"></button>
       </div>
     </div>
@@ -398,18 +391,6 @@
       }
     };
 
-    const LANGS = [
-      ["en", "English"],
-      ["zh-Hant", "繁體中文"],
-      ["zh-Hans", "简体中文"],
-      ["ja", "日本語"],
-      ["ko", "한국어"],
-      ["es", "Español"],
-      ["fr", "Français"],
-      ["de", "Deutsch"],
-      ["pt", "Português"]
-    ];
-
     const $ = (id) => document.getElementById(id);
     let destDir = "";
     let detectedName = "";
@@ -431,8 +412,6 @@
     }
 
     function detectLang() {
-      const saved = localStorage.getItem("zoom-loader-lang");
-      if (saved && I18N[saved]) return saved;
       const nav = (navigator.language || "en").toLowerCase().replace("_", "-");
       if (nav.startsWith("zh-tw") || nav.startsWith("zh-hk") || nav.startsWith("zh-hant") || nav.startsWith("zh-mo")) return "zh-Hant";
       if (nav.startsWith("zh")) return "zh-Hans";
@@ -450,7 +429,6 @@
         el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
       });
       $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
-      $("lang").setAttribute("aria-label", t("heading"));
       renderUpd();
     }
 
@@ -466,31 +444,33 @@
       else el.textContent = appVersion ? t("currentVersion", { version: appVersion }) : "";
     }
 
-    LANGS.forEach(([code, label]) => {
-      const opt = document.createElement("option");
-      opt.value = code;
-      opt.textContent = label;
-      $("lang").appendChild(opt);
-    });
     lang = detectLang();
-    $("lang").value = lang;
     $("after").value = localStorage.getItem("zoom-loader-after") || "open-location";
     applyI18n();
 
-    $("lang").addEventListener("change", () => {
-      lang = $("lang").value;
-      localStorage.setItem("zoom-loader-lang", lang);
-      applyI18n();
-    });
     $("after").addEventListener("change", () => {
       localStorage.setItem("zoom-loader-after", $("after").value);
     });
 
     function setDir(path) {
       destDir = path || "";
-      $("dirpath").textContent = destDir;
+      $("dirpath").value = destDir;
       $("dirpath").title = destDir;
     }
+
+    function rememberDir(path) {
+      destDir = (path || "").trim();
+      if (!destDir) return;
+      fetch("/api/remember-dir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ destDir })
+      }).catch(() => {});
+    }
+
+    $("dirpath").addEventListener("change", () => {
+      rememberDir($("dirpath").value);
+    });
 
     fetch("/api/defaults").then(r => r.json()).then(d => {
       setDir(d.downloadDir || "");
@@ -569,13 +549,17 @@
     };
 
     $("browse").onclick = async () => {
+      destDir = $("dirpath").value.trim() || destDir;
       const r = await fetch("/api/pick-folder", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify({ current: destDir, title: t("location") })
       });
       const data = await r.json();
-      if (data.path) setDir(data.path);
+      if (data.path) {
+        setDir(data.path);
+        rememberDir(data.path);
+      }
     };
 
     async function parsePaste() {
@@ -629,11 +613,11 @@
       try {
         const r = await fetch("/api/download", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json; charset=utf-8" },
           body: JSON.stringify({
             paste: $("paste").value,
             filename: $("name").value,
-            destDir,
+            destDir: $("dirpath").value.trim() || destDir,
             afterAction: $("after").value
           })
         });

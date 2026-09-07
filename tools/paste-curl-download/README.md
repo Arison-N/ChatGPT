@@ -1,22 +1,23 @@
-# Paste cURL Download
+# Zoom-loader
 
-貼上 Chrome **Copy as cURL (bash)**，用你自己嘅**課堂檔名**儲存完整 MP4（自動把 `Range` 改成 `bytes=0-`）。
+Paste Chrome **Copy as cURL (bash)** and save a Zoom recording under your own file name.
 
-## Windows：雙擊 `.exe`
+## Windows: double-click `.exe`
 
-1. 開 `tools/paste-curl-download/dist/PasteCurlDownload.exe`（或雙擊 `Start.bat`）
-2. **課堂檔名**填例如 `2026-09-04 微積分 L1`（未寫 `.mp4` 會自動加）
-3. Chrome Network → MP4 → Copy as cURL (bash) → 貼上
-4. 撳 **下載**
+`tools/paste-curl-download/dist/PasteCurlDownload.exe` (or `Start.bat`)
 
-會用獨立 Chrome App 視窗；檔案預設去 `Downloads`。
+1. **File name:** e.g. `yyyy-mm-dd_name_index` (`.mp4` is added if missing)
+2. **File saving location:** Choose folder
+3. Paste Copy as cURL (bash)
+4. Download
 
-重新編譯：
+Rebuild:
 
 ```bash
 cd tools/paste-curl-download
 bash build-windows.sh
 ```
+
 
 ## 課堂檔名規則
 

@@ -149,6 +149,22 @@ func main() {
 	mux.HandleFunc("/api/defaults", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]string{"downloadDir": defaultDownloadDir()})
 	})
+	mux.HandleFunc("/api/pick-folder", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Current string `json:"current"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		path, err := pickFolder(strings.TrimSpace(req.Current))
+		if err != nil {
+			writeJSON(w, 200, map[string]any{"cancelled": true, "error": err.Error()})
+			return
+		}
+		if path == "" {
+			writeJSON(w, 200, map[string]any{"cancelled": true})
+			return
+		}
+		writeJSON(w, 200, map[string]string{"path": path})
+	})
 	mux.HandleFunc("/api/parse", func(w http.ResponseWriter, r *http.Request) {
 		var req parseReq
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -242,7 +242,7 @@ def run_gui() -> int:
         return 1
 
     root = tk.Tk()
-    root.title("Paste cURL Download")
+    root.title("Zoom-loader")
     root.minsize(720, 560)
     root.geometry("880x640")
 
@@ -250,25 +250,25 @@ def run_gui() -> int:
 
     ttk.Label(
         root,
-        text="填課堂檔名，再貼 Chrome Copy as cURL (bash)。未填副檔名會自動加 .mp4。",
+        text="Enter custom file name and paste the Chrome Copy as cURL (bash).",
         wraplength=840,
     ).pack(anchor="w", **pad)
 
     opts = ttk.Frame(root)
     opts.pack(fill="x", **pad)
 
-    ttk.Label(opts, text="課堂檔名").grid(row=0, column=0, sticky="w")
+    ttk.Label(opts, text="File name:").grid(row=0, column=0, sticky="w")
     name_var = tk.StringVar()
     ttk.Entry(opts, textvariable=name_var, width=60).grid(row=0, column=1, sticky="ew", padx=6)
     ttk.Label(
         opts,
-        text="例如：2026-09-04 微積分 L1",
+        text="yyyy-mm-dd_name_index",
         foreground="#666",
     ).grid(row=1, column=1, sticky="w", padx=6)
 
-    ttk.Label(opts, text="儲存到").grid(row=2, column=0, sticky="w", pady=(8, 0))
+    ttk.Label(opts, text="File saving location").grid(row=2, column=0, sticky="w", pady=(8, 0))
     dir_var = tk.StringVar(value=str(default_download_dir()))
-    dir_entry = ttk.Entry(opts, textvariable=dir_var, width=60)
+    dir_entry = ttk.Entry(opts, textvariable=dir_var, width=60, state="readonly")
     dir_entry.grid(row=2, column=1, sticky="ew", padx=6, pady=(8, 0))
 
     def browse() -> None:
@@ -276,7 +276,7 @@ def run_gui() -> int:
         if chosen:
             dir_var.set(chosen)
 
-    ttk.Button(opts, text="Browse", command=browse).grid(row=2, column=2, pady=(8, 0))
+    ttk.Button(opts, text="Choose folder", command=browse).grid(row=2, column=2, pady=(8, 0))
     opts.columnconfigure(1, weight=1)
 
     text = tk.Text(root, wrap="none", height=16, undo=True)

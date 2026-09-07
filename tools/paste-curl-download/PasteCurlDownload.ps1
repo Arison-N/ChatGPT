@@ -171,13 +171,13 @@ function Start-CurlDownload($Parsed, [string]$DestPath) {
 }
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "Paste cURL Download"
+$form.Text = "Zoom-loader"
 $form.Size = New-Object System.Drawing.Size(920, 680)
 $form.StartPosition = "CenterScreen"
 $form.MinimumSize = New-Object System.Drawing.Size(720, 520)
 
 $hint = New-Object System.Windows.Forms.Label
-$hint.Text = "Paste Chrome Copy as cURL (bash). Range is rewritten to bytes=0- (full file, not a 4 MB chunk)."
+$hint.Text = "Enter custom file name and paste the Chrome Copy as cURL (bash)."
 $hint.AutoSize = $false
 $hint.Height = 36
 $hint.Dock = "Top"
@@ -204,19 +204,21 @@ $bottom.Dock = "Bottom"
 $bottom.Height = 210
 
 $dirLabel = New-Object System.Windows.Forms.Label
-$dirLabel.Text = "Save to"
+$dirLabel.Text = "File saving location"
 $dirLabel.Location = New-Object System.Drawing.Point(12, 12)
 $dirLabel.AutoSize = $true
 $bottom.Controls.Add($dirLabel)
 
 $dirBox = New-Object System.Windows.Forms.TextBox
+$dirBox.ReadOnly = $true
+$dirBox.TabStop = $false
 $dirBox.Text = Get-DownloadDir
 $dirBox.Location = New-Object System.Drawing.Point(80, 8)
 $dirBox.Width = 680
 $bottom.Controls.Add($dirBox)
 
 $browse = New-Object System.Windows.Forms.Button
-$browse.Text = "Browse"
+$browse.Text = "Choose folder"
 $browse.Location = New-Object System.Drawing.Point(770, 6)
 $browse.Add_Click({
         $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -226,7 +228,7 @@ $browse.Add_Click({
 $bottom.Controls.Add($browse)
 
 $nameLabel = New-Object System.Windows.Forms.Label
-$nameLabel.Text = "課堂檔名"
+$nameLabel.Text = "File name:"
 $nameLabel.Location = New-Object System.Drawing.Point(12, 44)
 $nameLabel.AutoSize = $true
 $bottom.Controls.Add($nameLabel)

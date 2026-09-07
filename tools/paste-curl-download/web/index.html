@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Zoom-loader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;600;700&family=Noto+Sans+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #101216;
+      --card: #1a1d24;
+      --ink: #f2f4f8;
+      --muted: #9aa3b2;
+      --line: #2a303b;
+      --accent: #4c8dff;
+      --danger: #ff6b6b;
+      --ok: #3dd68c;
+      --font: "Noto Sans", "Noto Sans HK", "Noto Sans TC", "Noto Sans SC", sans-serif;
+    }
+    html[lang="zh-Hant"] { --font: "Noto Sans HK", "Noto Sans TC", "Noto Sans", sans-serif; }
+    html[lang="zh-CN"] { --font: "Noto Sans SC", "Noto Sans", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+      font: 15px/1.45 var(--font);
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    body { display: flex; flex-direction: column; }
+    header {
+      padding: 18px 22px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .header-text { flex: 1 1 auto; min-width: 180px; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.35; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    #lang {
+      flex: 0 0 auto;
+      width: auto;
+      max-width: 280px;
+      margin-top: 2px;
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font: 600 13px/1.3 var(--font);
+      white-space: nowrap;
+    }
+    #lang:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
+    .update-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 22px 8px; }
+    #updStatus { font-size: 12px; color: var(--muted); }
+    main { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+    label { display: block; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-bottom: 6px; }
+    main input, main textarea, main select {
+      width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+      border-radius: 10px; padding: 10px 12px; font: inherit;
+    }
+    main input, main textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    main input:focus, main textarea:focus, main select:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
+    #name { font-size: 18px; font-weight: 600; padding: 12px 14px; }
+    textarea { flex: 1; min-height: 160px; resize: none; font-family: "Noto Sans Mono", "Noto Sans", monospace; font-size: 12px; }
+    .hint, .curl-guide { font-size: 12px; color: var(--muted); }
+    .hint { margin-top: 6px; }
+    .curl-guide { margin: -2px 0 8px; }
+    .chooser { display: flex; gap: 8px; align-items: stretch; }
+    #dirpath {
+      flex: 1 1 auto; min-width: 0; width: auto;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #browse { flex: 0 0 auto; white-space: nowrap; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+    button {
+      background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+      padding: 10px 16px; font: 600 14px/1 inherit; cursor: pointer;
+    }
+    button.secondary { background: #2a303b; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #barwrap { height: 10px; background: #2a303b; border-radius: 99px; overflow: hidden; display: none; }
+    #bar { height: 100%; width: 0; background: var(--ok); }
+    #status { min-height: 1.4em; font-size: 13px; color: var(--muted); }
+    #status.err { color: var(--danger); }
+    #status.ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <script>
+    (function () {
+      function isZoomChord(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
+        var k = e.key, c = e.code;
+        return k === "+" || k === "-" || k === "=" || k === "_" || k === "0" ||
+          c === "Equal" || c === "Minus" || c === "Digit0" ||
+          c === "NumpadAdd" || c === "NumpadSubtract" || c === "Numpad0";
+      }
+      function isBrowserChord(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
+        var k = e.key.toLowerCase();
+        return k === "r" || k === "p" || k === "f" || k === "g" || k === "u" ||
+          k === "n" || k === "t" || k === "j" || k === "s" || k === "o";
+      }
+      document.addEventListener("keydown", function (e) {
+        if (isZoomChord(e) || isBrowserChord(e) ||
+            e.key === "F3" || e.key === "F5" || e.key === "F7" || e.key === "F12") {
+          e.preventDefault();
+        }
+      }, true);
+      document.addEventListener("wheel", function (e) {
+        if (e.ctrlKey || e.metaKey) e.preventDefault();
+      }, { passive: false, capture: true });
+      document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+    })();
+  </script>
+  <header>
+    <div class="header-text">
+      <h1 data-i18n="heading"></h1>
+      <p data-i18n="sub"></p>
+    </div>
+    <select id="lang" aria-label="Language">
+      <option value="en">English (ENG)</option>
+      <option value="zh-Hant">Traditional Chinese (ZH-hk)</option>
+      <option value="zh-Hans">Simplified Chinese (ZH-cn)</option>
+    </select>
+  </header>
+  <div class="update-bar">
+    <button id="checkUpdate" class="secondary" type="button" data-i18n="checkUpdate"></button>
+    <button id="doUpdate" class="secondary" type="button" data-i18n="update" disabled></button>
+    <span id="updStatus"></span>
+  </div>
+  <main>
+    <div>
+      <label for="name" data-i18n="fileName"></label>
+      <input id="name" data-i18n-placeholder="placeholder" autocomplete="off" spellcheck="false" />
+      <div class="hint" id="detected"></div>
+    </div>
+    <div>
+      <label data-i18n="location"></label>
+      <div class="chooser">
+        <input id="dirpath" type="text" spellcheck="false" autocomplete="off" />
+        <button id="browse" class="secondary" type="button" data-i18n="chooseFolder"></button>
+      </div>
+    </div>
+    <div>
+      <label for="after" data-i18n="after"></label>
+      <select id="after">
+        <option value="nothing" data-i18n="nothing"></option>
+        <option value="open-location" data-i18n="openLocation"></option>
+        <option value="open-file" data-i18n="openFile"></option>
+      </select>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label for="paste" data-i18n="curlLabel"></label>
+      <div class="curl-guide" data-i18n="curlGuide"></div>
+      <textarea id="paste"></textarea>
+    </div>
+    <div class="actions">
+      <button id="dl" type="button" data-i18n="download"></button>
+      <button id="clear" class="secondary" type="button" data-i18n="clear"></button>
+    </div>
+    <div id="barwrap"><div id="bar"></div></div>
+    <div id="status"></div>
+  </main>
+  <script>
+    const I18N = {
+      en: {
+        heading: "Download Zoom recordings",
+        sub: "Enter custom file name and paste the Chrome Copy as cURL (bash).",
+        langLabel: "Language",
+        fileName: "File name:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: ".mp4 is added if you omit an extension.",
+        detected: "Detected original name: {name}",
+        parseError: "Could not parse cURL.",
+        location: "File saving location",
+        chooseFolder: "Choose folder",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "In the Network tab, right-click the MP4 → Copy → Copy as cURL (bash), then Ctrl+V.",
+        after: "After download",
+        nothing: "Nothing",
+        openLocation: "Open file location",
+        openFile: "Open file",
+        download: "Download",
+        clear: "Clear",
+        downloading: "Downloading…",
+        saved: "Saved {path} ({size})",
+        smallFile: "Note: file is under 5 MB; long recordings are usually much larger.",
+        checkUpdate: "Check for updates",
+        update: "Update",
+        currentVersion: "Version {version}",
+        checking: "Checking for updates…",
+        upToDate: "You’re up to date ({version})",
+        updateAvailable: "Update available: {latest} (now {current})",
+        updating: "Downloading update…",
+        restarting: "Restarting…",
+        updateFailed: "Update failed."
+      },
+      "zh-Hant": {
+        heading: "下載 Zoom 錄影",
+        sub: "輸入自訂檔名，並貼上 Chrome Copy as cURL (bash)。",
+        langLabel: "語言",
+        fileName: "檔名：",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "若未填副檔名，會自動加上 .mp4。",
+        detected: "偵測到原檔名：{name}",
+        parseError: "無法解析 cURL。",
+        location: "儲存位置",
+        chooseFolder: "選擇資料夾",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "在 Network 分頁對 MP4 按右鍵 → Copy → Copy as cURL (bash)，然後 Ctrl+V。",
+        after: "下載完成後",
+        nothing: "不執行動作",
+        openLocation: "開啟檔案位置",
+        openFile: "開啟檔案",
+        download: "下載",
+        clear: "清除",
+        downloading: "下載中…",
+        saved: "已儲存 {path}（{size}）",
+        smallFile: "注意：檔案細過 5 MB；長錄影通常會大很多。",
+        checkUpdate: "檢查更新",
+        update: "更新",
+        currentVersion: "版本 {version}",
+        checking: "正在檢查更新…",
+        upToDate: "已是最新版本（{version}）",
+        updateAvailable: "有新版本：{latest}（目前 {current}）",
+        updating: "正在下載更新…",
+        restarting: "正在重新啟動…",
+        updateFailed: "更新失敗。"
+      },
+      "zh-Hans": {
+        heading: "下载 Zoom 录像",
+        sub: "输入自定义文件名，并粘贴 Chrome Copy as cURL (bash)。",
+        langLabel: "语言",
+        fileName: "文件名：",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "若未填写扩展名，将自动添加 .mp4。",
+        detected: "检测到原始文件名：{name}",
+        parseError: "无法解析 cURL。",
+        location: "保存位置",
+        chooseFolder: "选择文件夹",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "在 Network 面板对 MP4 右键 → Copy → Copy as cURL (bash)，然后 Ctrl+V。",
+        after: "下载完成后",
+        nothing: "不执行操作",
+        openLocation: "打开文件位置",
+        openFile: "打开文件",
+        download: "下载",
+        clear: "清除",
+        downloading: "正在下载…",
+        saved: "已保存 {path}（{size}）",
+        smallFile: "注意：文件小于 5 MB；较长录像通常会大很多。",
+        checkUpdate: "检查更新",
+        update: "更新",
+        currentVersion: "版本 {version}",
+        checking: "正在检查更新…",
+        upToDate: "已是最新版本（{version}）",
+        updateAvailable: "有新版本：{latest}（当前 {current}）",
+        updating: "正在下载更新…",
+        restarting: "正在重新启动…",
+        updateFailed: "更新失败。"
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    let destDir = "";
+    let detectedName = "";
+    let lang = "en";
+    let appVersion = "";
+    let checkState = { kind: "current" };
+
+    const editable = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+    document.addEventListener("copy", (e) => { if (!editable(e.target)) e.preventDefault(); });
+    document.addEventListener("cut", (e) => { if (!editable(e.target)) e.preventDefault(); });
+    document.addEventListener("selectstart", (e) => { if (!editable(e.target)) e.preventDefault(); });
+    document.addEventListener("contextmenu", (e) => { if (!editable(e.target)) e.preventDefault(); });
+    document.addEventListener("dragstart", (e) => { if (!editable(e.target)) e.preventDefault(); });
+
+    function t(key, vars) {
+      let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replaceAll("{" + k + "}", vars[k]); });
+      return s;
+    }
+
+    function detectLang() {
+      const saved = localStorage.getItem("zoom-loader-lang");
+      if (saved && I18N[saved]) return saved;
+      const nav = (navigator.language || "en").toLowerCase().replace("_", "-");
+      if (nav.startsWith("zh-tw") || nav.startsWith("zh-hk") || nav.startsWith("zh-hant") || nav.startsWith("zh-mo")) return "zh-Hant";
+      if (nav.startsWith("zh")) return "zh-Hans";
+      return "en";
+    }
+
+    function applyI18n() {
+      document.documentElement.lang = lang === "zh-Hant" ? "zh-Hant" : lang === "zh-Hans" ? "zh-CN" : "en";
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+      });
+      $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
+      $("lang").setAttribute("aria-label", t("langLabel"));
+      renderUpd();
+    }
+
+    function renderUpd() {
+      const el = $("updStatus");
+      const s = checkState;
+      if (s.kind === "checking") el.textContent = t("checking");
+      else if (s.kind === "upToDate") el.textContent = t("upToDate", { version: s.version || appVersion });
+      else if (s.kind === "available") el.textContent = t("updateAvailable", { latest: s.latest, current: s.current });
+      else if (s.kind === "updating") el.textContent = t("updating");
+      else if (s.kind === "restarting") el.textContent = t("restarting");
+      else if (s.kind === "failed") el.textContent = t("updateFailed") + (s.error ? " " + s.error : "");
+      else el.textContent = appVersion ? t("currentVersion", { version: appVersion }) : "";
+    }
+
+    lang = detectLang();
+    $("lang").value = lang;
+    $("after").value = localStorage.getItem("zoom-loader-after") || "open-location";
+    applyI18n();
+
+    $("lang").addEventListener("change", () => {
+      lang = $("lang").value;
+      localStorage.setItem("zoom-loader-lang", lang);
+      applyI18n();
+    });
+    $("after").addEventListener("change", () => {
+      localStorage.setItem("zoom-loader-after", $("after").value);
+    });
+
+    function setDir(path) {
+      destDir = path || "";
+      $("dirpath").value = destDir;
+      $("dirpath").title = destDir;
+    }
+
+    function rememberDir(path) {
+      destDir = (path || "").trim();
+      if (!destDir) return;
+      fetch("/api/remember-dir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ destDir })
+      }).catch(() => {});
+    }
+
+    $("dirpath").addEventListener("change", () => {
+      rememberDir($("dirpath").value);
+    });
+
+    fetch("/api/defaults").then(r => r.json()).then(d => {
+      setDir(d.downloadDir || "");
+      appVersion = d.version || "";
+      renderUpd();
+    });
+
+    $("checkUpdate").onclick = async () => {
+      $("doUpdate").disabled = true;
+      checkState = { kind: "checking" };
+      renderUpd();
+      try {
+        const r = await fetch("/api/check-update");
+        const data = await r.json();
+        if (data.error) {
+          checkState = { kind: "failed", error: data.error };
+          renderUpd();
+          return;
+        }
+        appVersion = data.current || appVersion;
+        if (data.updateAvailable) {
+          checkState = { kind: "available", latest: data.latest, current: data.current };
+          $("doUpdate").disabled = false;
+        } else {
+          checkState = { kind: "upToDate", version: data.current };
+        }
+        renderUpd();
+      } catch (e) {
+        checkState = { kind: "failed", error: String(e) };
+        renderUpd();
+      }
+    };
+
+    $("doUpdate").onclick = async () => {
+      $("doUpdate").disabled = true;
+      $("checkUpdate").disabled = true;
+      checkState = { kind: "updating" };
+      renderUpd();
+      $("barwrap").style.display = "block";
+      $("bar").style.width = "0";
+      try {
+        const r = await fetch("/api/apply-update", { method: "POST" });
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const ev = JSON.parse(line);
+            if (ev.type === "progress") {
+              const pct = ev.total > 0 ? Math.min(100, (ev.written / ev.total) * 100) : 0;
+              $("bar").style.width = pct + "%";
+              $("status").textContent = fmt(ev.written) + (ev.total > 0 ? " / " + fmt(ev.total) : "");
+            } else if (ev.type === "done") {
+              $("bar").style.width = "100%";
+              checkState = { kind: "restarting" };
+              renderUpd();
+            } else if (ev.type === "error") {
+              checkState = { kind: "failed", error: ev.message };
+              renderUpd();
+              $("checkUpdate").disabled = false;
+            }
+          }
+        }
+      } catch (e) {
+        checkState = { kind: "failed", error: String(e) };
+        renderUpd();
+        $("checkUpdate").disabled = false;
+        $("doUpdate").disabled = false;
+      }
+    };
+
+    $("browse").onclick = async () => {
+      destDir = $("dirpath").value.trim() || destDir;
+      const r = await fetch("/api/pick-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ current: destDir, title: t("location") })
+      });
+      const data = await r.json();
+      if (data.path) {
+        setDir(data.path);
+        rememberDir(data.path);
+      }
+    };
+
+    async function parsePaste() {
+      const paste = $("paste").value;
+      if (!paste.includes("https://")) return;
+      const r = await fetch("/api/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paste })
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        $("detected").textContent = data.error || t("parseError");
+        return;
+      }
+      detectedName = data.filename || "";
+      $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
+    }
+
+    let parseTimer;
+    $("paste").addEventListener("input", () => {
+      clearTimeout(parseTimer);
+      parseTimer = setTimeout(parsePaste, 250);
+    });
+
+    $("clear").onclick = () => {
+      $("paste").value = "";
+      $("name").value = "";
+      detectedName = "";
+      $("detected").textContent = t("extHint");
+      $("status").textContent = "";
+      $("status").className = "";
+      $("barwrap").style.display = "none";
+      $("bar").style.width = "0";
+    };
+
+    function fmt(n) {
+      if (!n || n < 0) return "?";
+      if (n < 1024) return n + " B";
+      if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+      if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB";
+      return (n / 1073741824).toFixed(2) + " GB";
+    }
+
+    $("dl").onclick = async () => {
+      $("status").className = "";
+      $("status").textContent = t("downloading");
+      $("dl").disabled = true;
+      $("barwrap").style.display = "block";
+      $("bar").style.width = "0";
+      try {
+        const r = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+          body: JSON.stringify({
+            paste: $("paste").value,
+            filename: $("name").value,
+            destDir: $("dirpath").value.trim() || destDir,
+            afterAction: $("after").value
+          })
+        });
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const ev = JSON.parse(line);
+            if (ev.type === "progress") {
+              const pct = ev.total > 0 ? Math.min(100, (ev.written / ev.total) * 100) : 0;
+              $("bar").style.width = pct + "%";
+              $("status").textContent = fmt(ev.written) + (ev.total > 0 ? " / " + fmt(ev.total) : "");
+            } else if (ev.type === "done") {
+              $("bar").style.width = "100%";
+              $("status").className = "ok";
+              $("status").textContent = t("saved", { path: ev.path, size: fmt(ev.bytes) });
+              if (ev.bytes < 5000000) $("status").textContent += "  " + t("smallFile");
+            } else if (ev.type === "error") {
+              $("status").className = "err";
+              $("status").textContent = ev.message;
+            }
+          }
+        }
+      } catch (e) {
+        $("status").className = "err";
+        $("status").textContent = String(e);
+      } finally {
+        $("dl").disabled = false;
+      }
+    };
+
+    window.addEventListener("pagehide", () => {
+      navigator.sendBeacon("/api/shutdown");
+    });
+  </script>
+</body>
+</html>

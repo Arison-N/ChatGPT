@@ -1,11 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 )
 
 func pickFolder(current string) (string, error) {
@@ -19,28 +21,47 @@ func pickFolder(current string) (string, error) {
 	}
 }
 
-func psQuote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
-}
-
 func pickFolderWindows(current string) (string, error) {
-	script := fmt.Sprintf(`
-Add-Type -AssemblyName System.Windows.Forms
-$d = New-Object System.Windows.Forms.FolderBrowserDialog
-$d.Description = 'File saving location'
-$d.ShowNewFolderButton = $true
-$d.SelectedPath = %s
-$r = $d.ShowDialog()
-if ($r -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.SelectedPath) }
-`, psQuote(current))
-	cmd := exec.Command("powershell", "-NoProfile", "-STA", "-Command", script)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("folder picker: %v %s", err, strings.TrimSpace(stderr.String()))
+	dir, err := os.MkdirTemp("", "zoom-loader-pick-*")
+	if err != nil {
+		return "", err
 	}
-	return strings.TrimSpace(stdout.String()), nil
+	defer os.RemoveAll(dir)
+
+	csPath := filepath.Join(dir, "folderpicker.cs")
+	psPath := filepath.Join(dir, "pickfolder.ps1")
+	outPath := filepath.Join(dir, "path.txt")
+	if err := os.WriteFile(csPath, folderPickerCS, 0o644); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(psPath, pickFolderPS1, 0o644); err != nil {
+		return "", err
+	}
+
+	cmd := exec.Command("powershell",
+		"-NoProfile", "-STA", "-ExecutionPolicy", "Bypass",
+		"-File", psPath,
+		"-OutPath", outPath,
+		"-Initial", current,
+		"-CsPath", csPath,
+	)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("folder picker: %v\n%s", err, strings.TrimSpace(string(out)))
+	}
+	raw, err := os.ReadFile(outPath)
+	if err != nil {
+		return "", nil // cancelled
+	}
+	path := strings.TrimSpace(string(raw))
+	if path == "" {
+		return "", nil
+	}
+	if !utf8.ValidString(path) {
+		return "", fmt.Errorf("folder path is not valid UTF-8")
+	}
+	return path, nil
 }
 
 func pickFolderDarwin(current string) (string, error) {
@@ -63,4 +84,11 @@ func pickFolderLinux(current string) (string, error) {
 		return strings.TrimSpace(string(out)), nil
 	}
 	return "", fmt.Errorf("no folder picker available")
+}
+
+func revealInExplorer(path string) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	_ = exec.Command("explorer", "/select,"+filepath.Clean(path)).Start()
 }

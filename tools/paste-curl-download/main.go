@@ -23,6 +23,12 @@ import (
 //go:embed web/index.html
 var webFS embed.FS
 
+//go:embed folderpicker.cs
+var folderPickerCS []byte
+
+//go:embed pickfolder.ps1
+var pickFolderPS1 []byte
+
 type parseReq struct {
 	Paste string `json:"paste"`
 }
@@ -48,7 +54,9 @@ func defaultDownloadDir() string {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(v)
 }
 
 func findChrome() string {
@@ -207,6 +215,7 @@ func main() {
 		w.Header().Set("Cache-Control", "no-cache")
 		fl, _ := w.(http.Flusher)
 		enc := json.NewEncoder(w)
+		enc.SetEscapeHTML(false)
 		send := func(v any) {
 			_ = enc.Encode(v)
 			if fl != nil {
@@ -232,6 +241,7 @@ func main() {
 			return
 		}
 		send(map[string]any{"type": "done", "path": dest, "bytes": st.Size()})
+		revealInExplorer(dest)
 	})
 	mux.HandleFunc("/api/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)

@@ -24,6 +24,12 @@ var (
 	procCoCreateInstance            = ole32.NewProc("CoCreateInstance")
 	procCoTaskMemFree               = ole32.NewProc("CoTaskMemFree")
 	procSHCreateItemFromParsingName = shell32p.NewProc("SHCreateItemFromParsingName")
+	procILCreateFromPathW           = shell32p.NewProc("ILCreateFromPathW")
+	procSHOpenFolderAndSelectItems  = shell32p.NewProc("SHOpenFolderAndSelectItems")
+	procILFree                      = shell32p.NewProc("ILFree")
+	procShellExecuteW               = shell32p.NewProc("ShellExecuteW")
+	user32                          = syscall.NewLazyDLL("user32.dll")
+	procAllowSetForegroundWindow    = user32.NewProc("AllowSetForegroundWindow")
 )
 
 const (
@@ -35,6 +41,8 @@ const (
 	sigdnFileSysPath        = 0x80058000
 	rpcEChangedMode         = 0x80010106
 	hresultCancelled        = 0x800704C7
+	swShowNormal            = 1
+	asfwAny                 = ^uintptr(0)
 )
 
 type guid struct {
@@ -260,4 +268,47 @@ func pickFolderWindowsPowerShell(current, title string) (string, error) {
 		return "", fmt.Errorf("folder path is not valid UTF-8")
 	}
 	return path, nil
+}
+
+func revealInExplorerWindows(path string) {
+	if path == "" {
+		return
+	}
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	hr, _, _ := procCoInitializeEx.Call(0, coInitApartmentThreaded)
+	if !hrFail(hr) {
+		defer procCoUninitialize.Call()
+	}
+	procAllowSetForegroundWindow.Call(asfwAny)
+
+	w, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return
+	}
+	pidl, _, _ := procILCreateFromPathW.Call(uintptr(unsafe.Pointer(w)))
+	if pidl != 0 {
+		defer procILFree.Call(pidl)
+		hr, _, _ = procSHOpenFolderAndSelectItems.Call(pidl, 0, 0, 0)
+		if !hrFail(hr) {
+			return
+		}
+	}
+	verb, _ := syscall.UTF16PtrFromString("open")
+	file, _ := syscall.UTF16PtrFromString("explorer.exe")
+	params, _ := syscall.UTF16PtrFromString("/select," + path)
+	procShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(file)), uintptr(unsafe.Pointer(params)), 0, swShowNormal)
+}
+
+func openFileWindows(path string) {
+	if path == "" {
+		return
+	}
+	procAllowSetForegroundWindow.Call(asfwAny)
+	verb, _ := syscall.UTF16PtrFromString("open")
+	file, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return
+	}
+	procShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(file)), 0, 0, swShowNormal)
 }

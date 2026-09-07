@@ -54,7 +54,7 @@ func revealInExplorer(path string) {
 	clean := filepath.Clean(path)
 	switch runtime.GOOS {
 	case "windows":
-		_ = exec.Command("explorer", "/select,"+clean).Start()
+		revealInExplorerWindows(clean)
 	case "darwin":
 		_ = exec.Command("open", "-R", clean).Start()
 	default:
@@ -66,7 +66,7 @@ func openFile(path string) {
 	clean := filepath.Clean(path)
 	switch runtime.GOOS {
 	case "windows":
-		_ = exec.Command("cmd", "/c", "start", "", clean).Start()
+		openFileWindows(clean)
 	case "darwin":
 		_ = exec.Command("open", clean).Start()
 	default:

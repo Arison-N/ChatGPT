@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unicode/utf16"
 	"unicode/utf8"
 	"unsafe"
@@ -24,7 +25,11 @@ var (
 	procCoCreateInstance            = ole32.NewProc("CoCreateInstance")
 	procCoTaskMemFree               = ole32.NewProc("CoTaskMemFree")
 	procSHCreateItemFromParsingName = shell32p.NewProc("SHCreateItemFromParsingName")
+	procSHParseDisplayName          = shell32p.NewProc("SHParseDisplayName")
 	procILCreateFromPathW           = shell32p.NewProc("ILCreateFromPathW")
+	procILClone                     = shell32p.NewProc("ILClone")
+	procILRemoveLastID              = shell32p.NewProc("ILRemoveLastID")
+	procILFindLastID                = shell32p.NewProc("ILFindLastID")
 	procSHOpenFolderAndSelectItems  = shell32p.NewProc("SHOpenFolderAndSelectItems")
 	procILFree                      = shell32p.NewProc("ILFree")
 	procShellExecuteW               = shell32p.NewProc("ShellExecuteW")
@@ -270,10 +275,75 @@ func pickFolderWindowsPowerShell(current, title string) (string, error) {
 	return path, nil
 }
 
+func parsePIDL(path string) uintptr {
+	w, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return 0
+	}
+	var pidl uintptr
+	hr, _, _ := procSHParseDisplayName.Call(
+		uintptr(unsafe.Pointer(w)),
+		0,
+		uintptr(unsafe.Pointer(&pidl)),
+		0,
+		0,
+	)
+	if !hrFail(hr) && pidl != 0 {
+		return pidl
+	}
+	pidl, _, _ = procILCreateFromPathW.Call(uintptr(unsafe.Pointer(w)))
+	return pidl
+}
+
+func openAndSelectPIDL(pidl uintptr) bool {
+	if pidl == 0 {
+		return false
+	}
+	parent, _, _ := procILClone.Call(pidl)
+	if parent == 0 {
+		hr, _, _ := procSHOpenFolderAndSelectItems.Call(pidl, 0, 0, 0)
+		return !hrFail(hr)
+	}
+	defer procILFree.Call(parent)
+	ok, _, _ := procILRemoveLastID.Call(parent)
+	if ok == 0 {
+		hr, _, _ := procSHOpenFolderAndSelectItems.Call(pidl, 0, 0, 0)
+		return !hrFail(hr)
+	}
+	child, _, _ := procILFindLastID.Call(pidl)
+	if child == 0 {
+		return false
+	}
+	apidl := child
+	hr, _, _ := procSHOpenFolderAndSelectItems.Call(parent, 1, uintptr(unsafe.Pointer(&apidl)), 0)
+	return !hrFail(hr)
+}
+
+func shellOpen(path string) bool {
+	if path == "" {
+		return false
+	}
+	w, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return false
+	}
+	verb, _ := syscall.UTF16PtrFromString("open")
+	r, _, _ := procShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(w)), 0, 0, swShowNormal)
+	return r > 32
+}
+
 func revealInExplorerWindows(path string) {
+	path = windowsNormPath(path)
 	if path == "" {
 		return
 	}
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		runOnUI(func() { revealInExplorerWindowsSync(path) })
+	}()
+}
+
+func revealInExplorerWindowsSync(path string) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	hr, _, _ := procCoInitializeEx.Call(0, coInitApartmentThreaded)
@@ -282,33 +352,37 @@ func revealInExplorerWindows(path string) {
 	}
 	procAllowSetForegroundWindow.Call(asfwAny)
 
-	w, err := syscall.UTF16PtrFromString(path)
-	if err != nil {
-		return
-	}
-	pidl, _, _ := procILCreateFromPathW.Call(uintptr(unsafe.Pointer(w)))
-	if pidl != 0 {
-		defer procILFree.Call(pidl)
-		hr, _, _ = procSHOpenFolderAndSelectItems.Call(pidl, 0, 0, 0)
-		if !hrFail(hr) {
-			return
+	candidates := []string{path, windowsExtendedPath(path)}
+	for i := 0; i < 6; i++ {
+		for _, p := range candidates {
+			pidl := parsePIDL(p)
+			if pidl == 0 {
+				continue
+			}
+			ok := openAndSelectPIDL(pidl)
+			procILFree.Call(pidl)
+			if ok {
+				return
+			}
 		}
+		time.Sleep(150 * time.Millisecond)
 	}
-	verb, _ := syscall.UTF16PtrFromString("open")
-	file, _ := syscall.UTF16PtrFromString("explorer.exe")
-	params, _ := syscall.UTF16PtrFromString("/select," + path)
-	procShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(file)), uintptr(unsafe.Pointer(params)), 0, swShowNormal)
+	_ = shellOpen(windowsParentDir(path))
 }
 
 func openFileWindows(path string) {
+	path = windowsNormPath(path)
 	if path == "" {
 		return
 	}
-	procAllowSetForegroundWindow.Call(asfwAny)
-	verb, _ := syscall.UTF16PtrFromString("open")
-	file, err := syscall.UTF16PtrFromString(path)
-	if err != nil {
-		return
-	}
-	procShellExecuteW.Call(0, uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(file)), 0, 0, swShowNormal)
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		runOnUI(func() {
+			procAllowSetForegroundWindow.Call(asfwAny)
+			if shellOpen(path) {
+				return
+			}
+			_ = shellOpen(windowsExtendedPath(path))
+		})
+	}()
 }

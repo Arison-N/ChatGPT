@@ -1,5 +1,5 @@
 {
-  "version": "1.2.4",
-  "notes": "Choose folder without PowerShell; language selector ENG/ZH-hk/ZH-cn; Noto Sans; open file location uses Shell API so Explorer comes to the front for Chinese paths",
+  "version": "1.2.5",
+  "notes": "Open file location works for UNC NAS paths (\\\\Arison_NAS\\...) instead of jumping to Documents",
   "exe": "https://raw.githubusercontent.com/Arison-N/ChatGPT/cursor/paste-curl-downloader-304e/tools/paste-curl-download/dist/Zoom-loader.exe"
 }

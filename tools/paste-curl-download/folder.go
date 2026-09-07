@@ -51,34 +51,34 @@ func pickFolderLinux(current, title string) (string, error) {
 }
 
 func revealInExplorer(path string) {
-	clean := filepath.Clean(path)
 	switch runtime.GOOS {
 	case "windows":
-		revealInExplorerWindows(clean)
+		revealInExplorerWindows(path)
 	case "darwin":
+		clean := filepath.Clean(path)
 		_ = exec.Command("open", "-R", clean).Start()
 	default:
+		clean := filepath.Clean(path)
 		_ = exec.Command("xdg-open", filepath.Dir(clean)).Start()
 	}
 }
 
 func openFile(path string) {
-	clean := filepath.Clean(path)
 	switch runtime.GOOS {
 	case "windows":
-		openFileWindows(clean)
+		openFileWindows(path)
 	case "darwin":
-		_ = exec.Command("open", clean).Start()
+		_ = exec.Command("open", filepath.Clean(path)).Start()
 	default:
-		_ = exec.Command("xdg-open", clean).Start()
+		_ = exec.Command("xdg-open", filepath.Clean(path)).Start()
 	}
 }
 
 func runAfterDownload(path, action string) {
 	switch strings.ToLower(strings.TrimSpace(action)) {
 	case "open-file":
-		openFile(path)
+		go openFile(path)
 	case "open-location":
-		revealInExplorer(path)
+		go revealInExplorer(path)
 	}
 }

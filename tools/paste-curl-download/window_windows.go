@@ -52,6 +52,8 @@ func runUI(rawURL string, done <-chan struct{}) {
 		return
 	}
 	requestUIClose = func() { w.Terminate() }
+	uiDispatch = w.Dispatch
+	defer func() { uiDispatch = nil }()
 	defer w.Destroy()
 	w.SetSize(920, 780, webview2.HintNone)
 	w.Navigate(rawURL)

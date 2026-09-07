@@ -2,7 +2,7 @@ package main
 
 // Version is the running app version. Bump this together with version.json
 // when publishing a new Zoom-loader.exe.
-var Version = "1.2.4"
+var Version = "1.2.5"
 
 var versionManifestURLs = []string{
 	"https://raw.githubusercontent.com/Arison-N/ChatGPT/main/tools/paste-curl-download/version.json",

@@ -76,6 +76,20 @@ def filename_from_url(url: str) -> str:
     return name
 
 
+def lecture_filename(user_name: str, detected: str) -> str:
+    """Use a lecture title as the save name; empty falls back to URL filename."""
+    name = (user_name or "").strip() or (detected or "").strip()
+    if not name:
+        raise ParseError("請輸入課堂檔名")
+    name = name.replace("\\", "/").rsplit("/", 1)[-1].strip()
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
+    if not name or name in {".", ".."}:
+        raise ParseError("課堂檔名無效")
+    if not Path(name).suffix:
+        name += ".mp4"
+    return name
+
+
 def _dedupe_headers(headers: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
@@ -199,7 +213,11 @@ def run_cli(args: argparse.Namespace) -> int:
         return 2
 
     dest_dir = Path(args.output_dir).expanduser() if args.output_dir else default_download_dir()
-    filename = args.filename or parsed.filename
+    try:
+        filename = lecture_filename(args.filename or "", parsed.filename)
+    except ParseError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     dest = dest_dir / filename
     print(f"URL:  {parsed.url.split('?', 1)[0]}", file=sys.stderr)
     print(f"File: {dest}", file=sys.stderr)
@@ -232,34 +250,37 @@ def run_gui() -> int:
 
     ttk.Label(
         root,
-        text="Paste Chrome → Copy as cURL (bash). Range is rewritten to bytes=0- (full file).",
+        text="填課堂檔名，再貼 Chrome Copy as cURL (bash)。未填副檔名會自動加 .mp4。",
         wraplength=840,
     ).pack(anchor="w", **pad)
-
-    text = tk.Text(root, wrap="none", height=16, undo=True)
-    text.pack(fill="both", expand=True, padx=12, pady=4)
 
     opts = ttk.Frame(root)
     opts.pack(fill="x", **pad)
 
-    ttk.Label(opts, text="Save to").grid(row=0, column=0, sticky="w")
+    ttk.Label(opts, text="課堂檔名").grid(row=0, column=0, sticky="w")
+    name_var = tk.StringVar()
+    ttk.Entry(opts, textvariable=name_var, width=60).grid(row=0, column=1, sticky="ew", padx=6)
+    ttk.Label(
+        opts,
+        text="例如：2026-09-04 微積分 L1",
+        foreground="#666",
+    ).grid(row=1, column=1, sticky="w", padx=6)
+
+    ttk.Label(opts, text="儲存到").grid(row=2, column=0, sticky="w", pady=(8, 0))
     dir_var = tk.StringVar(value=str(default_download_dir()))
     dir_entry = ttk.Entry(opts, textvariable=dir_var, width=60)
-    dir_entry.grid(row=0, column=1, sticky="ew", padx=6)
+    dir_entry.grid(row=2, column=1, sticky="ew", padx=6, pady=(8, 0))
 
     def browse() -> None:
         chosen = filedialog.askdirectory(initialdir=dir_var.get() or str(default_download_dir()))
         if chosen:
             dir_var.set(chosen)
 
-    ttk.Button(opts, text="Browse", command=browse).grid(row=0, column=2)
-
-    ttk.Label(opts, text="Filename").grid(row=1, column=0, sticky="w", pady=(8, 0))
-    name_var = tk.StringVar()
-    ttk.Entry(opts, textvariable=name_var, width=60).grid(
-        row=1, column=1, sticky="ew", padx=6, pady=(8, 0)
-    )
+    ttk.Button(opts, text="Browse", command=browse).grid(row=2, column=2, pady=(8, 0))
     opts.columnconfigure(1, weight=1)
+
+    text = tk.Text(root, wrap="none", height=16, undo=True)
+    text.pack(fill="both", expand=True, padx=12, pady=4)
 
     log = tk.Text(root, height=8, wrap="word", state="disabled")
     log.pack(fill="both", expand=False, padx=12, pady=4)
@@ -288,10 +309,10 @@ def run_gui() -> int:
         raw = text.get("1.0", "end")
         try:
             parsed = parse_curl_paste(raw)
+            filename = lecture_filename(name_var.get(), parsed.filename)
         except ParseError as exc:
             messagebox.showerror("Parse error", str(exc))
             return
-        filename = name_var.get().strip() or parsed.filename
         dest = Path(dir_var.get()).expanduser() / filename
         append_log(f"Downloading → {dest}")
         append_log(parsed.url.split("?", 1)[0])

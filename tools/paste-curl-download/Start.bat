@@ -2,6 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
+if exist "%~dp0dist\PasteCurlDownload.exe" (
+  start "" "%~dp0dist\PasteCurlDownload.exe"
+  goto :eof
+)
+
 where py >nul 2>&1
 if %ERRORLEVEL%==0 (
   py -3 paste_curl_download.py

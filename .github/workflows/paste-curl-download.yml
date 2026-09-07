@@ -1,0 +1,39 @@
+name: paste-curl-download
+
+on:
+  push:
+    paths:
+      - "tools/paste-curl-download/**"
+  pull_request:
+    paths:
+      - "tools/paste-curl-download/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/paste-curl-download
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go test ./...
+      - run: python3 test_parse.py
+
+  windows-exe:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/paste-curl-download
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: bash build-windows.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PasteCurlDownload-windows
+          path: tools/paste-curl-download/dist/PasteCurlDownload.exe

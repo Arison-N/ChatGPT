@@ -20,6 +20,10 @@ dist
 dist-ssr
 *.local
 
+# Keep the paste-cURL Windows helper binary
+!tools/paste-curl-download/dist/
+!tools/paste-curl-download/dist/**
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

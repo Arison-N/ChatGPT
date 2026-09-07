@@ -6,6 +6,7 @@ from pathlib import Path
 from paste_curl_download import (
     ParseError,
     filename_from_url,
+    lecture_filename,
     parse_curl_paste,
     write_curl_config,
 )
@@ -88,7 +89,13 @@ class ParseTests(unittest.TestCase):
         with self.assertRaises(ParseError):
             parse_curl_paste("curl http://evil.example/x.mp4")
 
-    def test_filename_sanitize(self):
+    def test_lecture_filename(self):
+        self.assertEqual(lecture_filename("2026-09-04 微積分 L1", "GMT.mp4"), "2026-09-04 微積分 L1.mp4")
+        self.assertEqual(lecture_filename("notes.mkv", "GMT.mp4"), "notes.mkv")
+        self.assertEqual(lecture_filename("", "GMT20260904.mp4"), "GMT20260904.mp4")
+        self.assertEqual(lecture_filename(r"C:\evil\a<>b", "x.mp4"), "a__b.mp4")
+        with self.assertRaises(ParseError):
+            lecture_filename("", "")
         self.assertEqual(
             filename_from_url("https://x.example/a/b/hello world.mp4"),
             "hello world.mp4",

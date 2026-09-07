@@ -24,7 +24,28 @@ function ConvertTo-NormalizedPaste([string]$Text) {
     return $t.Trim()
 }
 
+function ConvertTo-LectureFilename([string]$UserName, [string]$Detected) {
+    $name = $UserName.Trim()
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = $Detected.Trim() }
+    if ([string]::IsNullOrWhiteSpace($name)) { throw "請輸入課堂檔名" }
+    $name = $name.Replace("\", "/")
+    $idx = $name.LastIndexOf("/")
+    if ($idx -ge 0) { $name = $name.Substring($idx + 1) }
+    $name = [regex]::Replace($name.Trim(), '[<>:"/\\|?*]', "_")
+    if ([string]::IsNullOrWhiteSpace($name) -or $name -eq "." -or $name -eq "..") {
+        throw "課堂檔名無效"
+    }
+    if (-not [System.IO.Path]::HasExtension($name)) { $name += ".mp4" }
+    return $name
+}
+
 function Get-FilenameFromUrl([string]$Url) {
+    $noQuery = $Url.Split("?")[0]
+    $name = [System.Uri]::UnescapeDataString(($noQuery.Split("/") | Select-Object -Last 1))
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = "download.bin" }
+    $name = [regex]::Replace($name, '[<>:"/\\|?*]', "_")
+    return $name
+}
     $noQuery = $Url.Split("?")[0]
     $name = [System.Uri]::UnescapeDataString(($noQuery.Split("/") | Select-Object -Last 1))
     if ([string]::IsNullOrWhiteSpace($name)) { $name = "download.bin" }
@@ -205,7 +226,7 @@ $browse.Add_Click({
 $bottom.Controls.Add($browse)
 
 $nameLabel = New-Object System.Windows.Forms.Label
-$nameLabel.Text = "Filename"
+$nameLabel.Text = "課堂檔名"
 $nameLabel.Location = New-Object System.Drawing.Point(12, 44)
 $nameLabel.AutoSize = $true
 $bottom.Controls.Add($nameLabel)
@@ -281,8 +302,7 @@ $timer.Add_Tick({
 $dl.Add_Click({
         try {
             $parsed = ConvertFrom-CurlPaste $box.Text
-            $filename = $nameBox.Text.Trim()
-            if (-not $filename) { $filename = $parsed.Filename }
+            $filename = ConvertTo-LectureFilename $nameBox.Text $parsed.Filename
             $destDir = $dirBox.Text.Trim()
             if (-not (Test-Path -LiteralPath $destDir)) {
                 New-Item -ItemType Directory -Path $destDir | Out-Null

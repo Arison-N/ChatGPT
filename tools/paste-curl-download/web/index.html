@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lecture Download</title>
+  <style>
+    :root {
+      --bg: #101216;
+      --card: #1a1d24;
+      --ink: #f2f4f8;
+      --muted: #9aa3b2;
+      --line: #2a303b;
+      --accent: #4c8dff;
+      --danger: #ff6b6b;
+      --ok: #3dd68c;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 15px/1.45 "Segoe UI", "PingFang HK", "Noto Sans TC", sans-serif; }
+    body { display: flex; flex-direction: column; }
+    header { padding: 18px 22px 8px; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 650; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    main { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+    label { display: block; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-bottom: 6px; }
+    input, textarea {
+      width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+      border-radius: 10px; padding: 10px 12px; font: inherit;
+    }
+    input:focus, textarea:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
+    #name { font-size: 18px; font-weight: 600; padding: 12px 14px; }
+    textarea { flex: 1; min-height: 180px; resize: none; font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+    button {
+      background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+      padding: 10px 16px; font: 600 14px/1 inherit; cursor: pointer;
+    }
+    button.secondary { background: #2a303b; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #barwrap { height: 10px; background: #2a303b; border-radius: 99px; overflow: hidden; display: none; }
+    #bar { height: 100%; width: 0; background: var(--ok); }
+    #status { min-height: 1.4em; font-size: 13px; color: var(--muted); }
+    #status.err { color: var(--danger); }
+    #status.ok { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>課堂錄影下載</h1>
+    <p>先填課堂檔名，再貼 Chrome Copy as cURL (bash)。會下載完整 MP4，唔係 4 MB chunk。</p>
+  </header>
+  <main>
+    <div>
+      <label for="name">課堂檔名（會用作儲存檔名）</label>
+      <input id="name" placeholder="例如：2026-09-04 微積分 L1" autocomplete="off" />
+      <div class="hint" id="detected">未填副檔名會自動加 .mp4。可貼 curl 後先睇偵測到嘅原檔名再改。</div>
+    </div>
+    <div>
+      <label for="dir">儲存資料夾</label>
+      <input id="dir" />
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <label for="paste">Chrome Copy as cURL (bash)</label>
+      <textarea id="paste" placeholder="喺 Network 對 MP4 右鍵 → Copy → Copy as cURL (bash)，然後 Ctrl+V"></textarea>
+    </div>
+    <div class="actions">
+      <button id="dl" type="button">下載</button>
+      <button id="clear" class="secondary" type="button">清除</button>
+    </div>
+    <div id="barwrap"><div id="bar"></div></div>
+    <div id="status"></div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let detectedName = "";
+    let userEditedName = false;
+
+    $("name").addEventListener("input", () => { userEditedName = $("name").value.trim().length > 0; });
+
+    fetch("/api/defaults").then(r => r.json()).then(d => { $("dir").value = d.downloadDir || ""; });
+
+    async function parsePaste() {
+      const paste = $("paste").value;
+      if (!paste.includes("https://")) return;
+      const r = await fetch("/api/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paste })
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        $("detected").textContent = data.error || "無法解析";
+        return;
+      }
+      detectedName = data.filename || "";
+      $("detected").textContent = detectedName
+        ? ("偵測到原檔名：" + detectedName + "　← 可改成你嘅課堂名稱")
+        : "未填副檔名會自動加 .mp4";
+      if (!userEditedName && detectedName) $("name").value = detectedName;
+    }
+
+    let parseTimer;
+    $("paste").addEventListener("input", () => {
+      clearTimeout(parseTimer);
+      parseTimer = setTimeout(parsePaste, 250);
+    });
+
+    $("clear").onclick = () => {
+      $("paste").value = "";
+      $("name").value = "";
+      userEditedName = false;
+      detectedName = "";
+      $("status").textContent = "";
+      $("status").className = "";
+      $("barwrap").style.display = "none";
+      $("bar").style.width = "0";
+    };
+
+    function fmt(n) {
+      if (!n || n < 0) return "?";
+      if (n < 1024) return n + " B";
+      if (n < 1048576) return (n/1024).toFixed(1) + " KB";
+      if (n < 1073741824) return (n/1048576).toFixed(1) + " MB";
+      return (n/1073741824).toFixed(2) + " GB";
+    }
+
+    $("dl").onclick = async () => {
+      $("status").className = "";
+      $("status").textContent = "開始下載…";
+      $("dl").disabled = true;
+      $("barwrap").style.display = "block";
+      $("bar").style.width = "0";
+      try {
+        const r = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paste: $("paste").value,
+            filename: $("name").value,
+            destDir: $("dir").value
+          })
+        });
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const ev = JSON.parse(line);
+            if (ev.type === "progress") {
+              const pct = ev.total > 0 ? Math.min(100, (ev.written / ev.total) * 100) : 0;
+              $("bar").style.width = pct + "%";
+              $("status").textContent = fmt(ev.written) + (ev.total > 0 ? " / " + fmt(ev.total) : "");
+            } else if (ev.type === "done") {
+              $("bar").style.width = "100%";
+              $("status").className = "ok";
+              $("status").textContent = "已儲存 " + ev.path + "（" + fmt(ev.bytes) + "）";
+              if (ev.bytes < 5000000) {
+                $("status").textContent += "　注意：檔細過 5 MB，長錄影通常大好多。";
+              }
+            } else if (ev.type === "error") {
+              $("status").className = "err";
+              $("status").textContent = ev.message;
+            }
+          }
+        }
+      } catch (e) {
+        $("status").className = "err";
+        $("status").textContent = String(e);
+      } finally {
+        $("dl").disabled = false;
+      }
+    };
+
+    window.addEventListener("pagehide", () => {
+      navigator.sendBeacon("/api/shutdown");
+    });
+  </script>
+</body>
+</html>

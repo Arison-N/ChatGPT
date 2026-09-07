@@ -10,18 +10,21 @@ import (
 	"unicode/utf8"
 )
 
-func pickFolder(current string) (string, error) {
+func pickFolder(current, title string) (string, error) {
+	if strings.TrimSpace(title) == "" {
+		title = "File saving location"
+	}
 	switch runtime.GOOS {
 	case "windows":
-		return pickFolderWindows(current)
+		return pickFolderWindows(current, title)
 	case "darwin":
-		return pickFolderDarwin(current)
+		return pickFolderDarwin(current, title)
 	default:
-		return pickFolderLinux(current)
+		return pickFolderLinux(current, title)
 	}
 }
 
-func pickFolderWindows(current string) (string, error) {
+func pickFolderWindows(current, title string) (string, error) {
 	dir, err := os.MkdirTemp("", "zoom-loader-pick-*")
 	if err != nil {
 		return "", err
@@ -44,6 +47,7 @@ func pickFolderWindows(current string) (string, error) {
 		"-OutPath", outPath,
 		"-Initial", current,
 		"-CsPath", csPath,
+		"-Title", title,
 	)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
@@ -64,8 +68,11 @@ func pickFolderWindows(current string) (string, error) {
 	return path, nil
 }
 
-func pickFolderDarwin(current string) (string, error) {
-	script := `POSIX path of (choose folder with prompt "File saving location")`
+func pickFolderDarwin(current, title string) (string, error) {
+	if title == "" {
+		title = "File saving location"
+	}
+	script := `POSIX path of (choose folder with prompt "` + strings.ReplaceAll(title, `"`, `'`) + `")`
 	cmd := exec.Command("osascript", "-e", script)
 	out, err := cmd.Output()
 	if err != nil {
@@ -74,9 +81,12 @@ func pickFolderDarwin(current string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func pickFolderLinux(current string) (string, error) {
+func pickFolderLinux(current, title string) (string, error) {
+	if title == "" {
+		title = "File saving location"
+	}
 	if p, err := exec.LookPath("zenity"); err == nil {
-		cmd := exec.Command(p, "--file-selection", "--directory", "--title=File saving location", "--filename="+current+"/")
+		cmd := exec.Command(p, "--file-selection", "--directory", "--title="+title, "--filename="+current+"/")
 		out, err := cmd.Output()
 		if err != nil {
 			return "", err
@@ -87,8 +97,34 @@ func pickFolderLinux(current string) (string, error) {
 }
 
 func revealInExplorer(path string) {
-	if runtime.GOOS != "windows" {
-		return
+	clean := filepath.Clean(path)
+	switch runtime.GOOS {
+	case "windows":
+		_ = exec.Command("explorer", "/select,"+clean).Start()
+	case "darwin":
+		_ = exec.Command("open", "-R", clean).Start()
+	default:
+		_ = exec.Command("xdg-open", filepath.Dir(clean)).Start()
 	}
-	_ = exec.Command("explorer", "/select,"+filepath.Clean(path)).Start()
+}
+
+func openFile(path string) {
+	clean := filepath.Clean(path)
+	switch runtime.GOOS {
+	case "windows":
+		_ = exec.Command("cmd", "/c", "start", "", clean).Start()
+	case "darwin":
+		_ = exec.Command("open", clean).Start()
+	default:
+		_ = exec.Command("xdg-open", clean).Start()
+	}
+}
+
+func runAfterDownload(path, action string) {
+	switch strings.ToLower(strings.TrimSpace(action)) {
+	case "open-file":
+		openFile(path)
+	case "open-location":
+		revealInExplorer(path)
+	}
 }

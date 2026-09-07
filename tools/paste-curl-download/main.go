@@ -34,9 +34,10 @@ type parseReq struct {
 }
 
 type downloadReq struct {
-	Paste    string `json:"paste"`
-	Filename string `json:"filename"`
-	DestDir  string `json:"destDir"`
+	Paste       string `json:"paste"`
+	Filename    string `json:"filename"`
+	DestDir     string `json:"destDir"`
+	AfterAction string `json:"afterAction"`
 }
 
 func defaultDownloadDir() string {
@@ -160,9 +161,10 @@ func main() {
 	mux.HandleFunc("/api/pick-folder", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Current string `json:"current"`
+			Title   string `json:"title"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
-		path, err := pickFolder(strings.TrimSpace(req.Current))
+		path, err := pickFolder(strings.TrimSpace(req.Current), strings.TrimSpace(req.Title))
 		if err != nil {
 			writeJSON(w, 200, map[string]any{"cancelled": true, "error": err.Error()})
 			return
@@ -241,7 +243,7 @@ func main() {
 			return
 		}
 		send(map[string]any{"type": "done", "path": dest, "bytes": st.Size()})
-		revealInExplorer(dest)
+		runAfterDownload(dest, req.AfterAction)
 	})
 	mux.HandleFunc("/api/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)

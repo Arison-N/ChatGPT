@@ -24,22 +24,30 @@
       -moz-user-select: none;
     }
     body { display: flex; flex-direction: column; }
-    header { padding: 18px 22px 8px; }
+    header { padding: 18px 22px 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .header-text { flex: 1; min-width: 0; }
     header h1 { margin: 0; font-size: 18px; font-weight: 650; }
     header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    #lang {
+      background: var(--card); color: var(--ink); border: 1px solid var(--line);
+      border-radius: 8px; padding: 6px 8px; font: inherit; flex-shrink: 0;
+    }
     main { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
     label { display: block; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-bottom: 6px; }
-    input, textarea {
+    input, textarea, select {
       width: 100%; background: var(--card); color: var(--ink); border: 1px solid var(--line);
       border-radius: 10px; padding: 10px 12px; font: inherit;
+    }
+    input, textarea {
       user-select: text;
       -webkit-user-select: text;
     }
-    input:focus, textarea:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
+    input:focus, textarea:focus, select:focus { outline: 2px solid #2e5fb8; border-color: var(--accent); }
     #name { font-size: 18px; font-weight: 600; padding: 12px 14px; }
-    textarea { flex: 1; min-height: 180px; resize: none; font-family: Consolas, "Courier New", monospace; font-size: 12px; }
-    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
-    .curl-guide { font-size: 12px; color: var(--muted); margin: -2px 0 8px; }
+    textarea { flex: 1; min-height: 160px; resize: none; font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+    .hint, .curl-guide { font-size: 12px; color: var(--muted); }
+    .hint { margin-top: 6px; }
+    .curl-guide { margin: -2px 0 8px; }
     .chooser { display: flex; gap: 8px; align-items: stretch; }
     #dirpath {
       flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line);
@@ -49,7 +57,6 @@
     button {
       background: var(--accent); color: #fff; border: 0; border-radius: 10px;
       padding: 10px 16px; font: 600 14px/1 inherit; cursor: pointer;
-      user-select: none;
     }
     button.secondary { background: #2a303b; }
     button:disabled { opacity: .5; cursor: not-allowed; }
@@ -62,45 +69,319 @@
 </head>
 <body>
   <header>
-    <h1>Download Zoom recordings</h1>
-    <p>Enter custom file name and paste the Chrome Copy as cURL (bash).</p>
+    <div class="header-text">
+      <h1 data-i18n="heading"></h1>
+      <p data-i18n="sub"></p>
+    </div>
+    <select id="lang" aria-label="Language"></select>
   </header>
   <main>
     <div>
-      <label for="name">File name:</label>
-      <input id="name" placeholder="yyyy-mm-dd_name_index" autocomplete="off" spellcheck="false" />
-      <div class="hint" id="detected">.mp4 is added if you omit an extension.</div>
+      <label for="name" data-i18n="fileName"></label>
+      <input id="name" data-i18n-placeholder="placeholder" autocomplete="off" spellcheck="false" />
+      <div class="hint" id="detected"></div>
     </div>
     <div>
-      <label>File saving location</label>
+      <label data-i18n="location"></label>
       <div class="chooser">
         <div id="dirpath"></div>
-        <button id="browse" class="secondary" type="button">Choose folder</button>
+        <button id="browse" class="secondary" type="button" data-i18n="chooseFolder"></button>
       </div>
     </div>
+    <div>
+      <label for="after" data-i18n="after"></label>
+      <select id="after">
+        <option value="nothing" data-i18n="nothing"></option>
+        <option value="open-location" data-i18n="openLocation"></option>
+        <option value="open-file" data-i18n="openFile"></option>
+      </select>
+    </div>
     <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
-      <label for="paste">Chrome Copy as cURL (bash)</label>
-      <div class="curl-guide">In the Network tab, right-click the MP4 → Copy → Copy as cURL (bash), then Ctrl+V.</div>
+      <label for="paste" data-i18n="curlLabel"></label>
+      <div class="curl-guide" data-i18n="curlGuide"></div>
       <textarea id="paste"></textarea>
     </div>
     <div class="actions">
-      <button id="dl" type="button">Download</button>
-      <button id="clear" class="secondary" type="button">Clear</button>
+      <button id="dl" type="button" data-i18n="download"></button>
+      <button id="clear" class="secondary" type="button" data-i18n="clear"></button>
     </div>
     <div id="barwrap"><div id="bar"></div></div>
     <div id="status"></div>
   </main>
   <script>
+    const I18N = {
+      en: {
+        heading: "Download Zoom recordings",
+        sub: "Enter custom file name and paste the Chrome Copy as cURL (bash).",
+        fileName: "File name:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: ".mp4 is added if you omit an extension.",
+        detected: "Detected original name: {name}",
+        parseError: "Could not parse cURL.",
+        location: "File saving location",
+        chooseFolder: "Choose folder",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "In the Network tab, right-click the MP4 → Copy → Copy as cURL (bash), then Ctrl+V.",
+        after: "After download",
+        nothing: "Nothing",
+        openLocation: "Open file location",
+        openFile: "Open file",
+        download: "Download",
+        clear: "Clear",
+        downloading: "Downloading…",
+        saved: "Saved {path} ({size})",
+        smallFile: "Note: file is under 5 MB; long recordings are usually much larger."
+      },
+      "zh-Hant": {
+        heading: "下載 Zoom 錄影",
+        sub: "輸入自訂檔名，並貼上 Chrome Copy as cURL (bash)。",
+        fileName: "檔名：",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "若未填副檔名，會自動加上 .mp4。",
+        detected: "偵測到原檔名：{name}",
+        parseError: "無法解析 cURL。",
+        location: "儲存位置",
+        chooseFolder: "選擇資料夾",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "在 Network 分頁對 MP4 按右鍵 → Copy → Copy as cURL (bash)，然後 Ctrl+V。",
+        after: "下載完成後",
+        nothing: "不執行動作",
+        openLocation: "開啟檔案位置",
+        openFile: "開啟檔案",
+        download: "下載",
+        clear: "清除",
+        downloading: "下載中…",
+        saved: "已儲存 {path}（{size}）",
+        smallFile: "注意：檔案細過 5 MB；長錄影通常會大很多。"
+      },
+      "zh-Hans": {
+        heading: "下载 Zoom 录像",
+        sub: "输入自定义文件名，并粘贴 Chrome Copy as cURL (bash)。",
+        fileName: "文件名：",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "若未填写扩展名，将自动添加 .mp4。",
+        detected: "检测到原始文件名：{name}",
+        parseError: "无法解析 cURL。",
+        location: "保存位置",
+        chooseFolder: "选择文件夹",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "在 Network 面板对 MP4 右键 → Copy → Copy as cURL (bash)，然后 Ctrl+V。",
+        after: "下载完成后",
+        nothing: "不执行操作",
+        openLocation: "打开文件位置",
+        openFile: "打开文件",
+        download: "下载",
+        clear: "清除",
+        downloading: "正在下载…",
+        saved: "已保存 {path}（{size}）",
+        smallFile: "注意：文件小于 5 MB；较长录像通常会大很多。"
+      },
+      ja: {
+        heading: "Zoom 録画をダウンロード",
+        sub: "ファイル名を入力し、Chrome の Copy as cURL (bash) を貼り付けます。",
+        fileName: "ファイル名：",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "拡張子を省略すると .mp4 が付きます。",
+        detected: "元のファイル名：{name}",
+        parseError: "cURL を解析できません。",
+        location: "保存先",
+        chooseFolder: "フォルダーを選択",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "Network タブで MP4 を右クリック → Copy → Copy as cURL (bash)、その後 Ctrl+V。",
+        after: "ダウンロード後",
+        nothing: "何もしない",
+        openLocation: "保存場所を開く",
+        openFile: "ファイルを開く",
+        download: "ダウンロード",
+        clear: "クリア",
+        downloading: "ダウンロード中…",
+        saved: "保存しました {path}（{size}）",
+        smallFile: "注意：5 MB 未満です。長い録画は通常もっと大きいです。"
+      },
+      ko: {
+        heading: "Zoom 녹화 다운로드",
+        sub: "파일 이름을 입력하고 Chrome Copy as cURL (bash)를 붙여넣으세요.",
+        fileName: "파일 이름:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "확장자를 생략하면 .mp4가 추가됩니다.",
+        detected: "원본 파일 이름: {name}",
+        parseError: "cURL을 해석할 수 없습니다.",
+        location: "저장 위치",
+        chooseFolder: "폴더 선택",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "Network 탭에서 MP4를 마우스 오른쪽 클릭 → Copy → Copy as cURL (bash), 그다음 Ctrl+V.",
+        after: "다운로드 후",
+        nothing: "아무 작업 안 함",
+        openLocation: "파일 위치 열기",
+        openFile: "파일 열기",
+        download: "다운로드",
+        clear: "지우기",
+        downloading: "다운로드 중…",
+        saved: "저장됨 {path} ({size})",
+        smallFile: "참고: 파일이 5 MB 미만입니다. 긴 녹화는 보통 훨씬 큽니다."
+      },
+      es: {
+        heading: "Descargar grabaciones de Zoom",
+        sub: "Introduzca un nombre de archivo y pegue Copy as cURL (bash) de Chrome.",
+        fileName: "Nombre de archivo:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "Si omite la extensión, se añade .mp4.",
+        detected: "Nombre original detectado: {name}",
+        parseError: "No se pudo analizar el cURL.",
+        location: "Ubicación de guardado",
+        chooseFolder: "Elegir carpeta",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "En la pestaña Network, clic derecho en el MP4 → Copy → Copy as cURL (bash), luego Ctrl+V.",
+        after: "Tras la descarga",
+        nothing: "Nada",
+        openLocation: "Abrir ubicación del archivo",
+        openFile: "Abrir archivo",
+        download: "Descargar",
+        clear: "Borrar",
+        downloading: "Descargando…",
+        saved: "Guardado {path} ({size})",
+        smallFile: "Nota: el archivo pesa menos de 5 MB; las grabaciones largas suelen ser mayores."
+      },
+      fr: {
+        heading: "Télécharger les enregistrements Zoom",
+        sub: "Saisissez un nom de fichier et collez Copy as cURL (bash) de Chrome.",
+        fileName: "Nom du fichier :",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "Sans extension, .mp4 est ajouté.",
+        detected: "Nom d’origine détecté : {name}",
+        parseError: "Impossible d’analyser le cURL.",
+        location: "Emplacement d’enregistrement",
+        chooseFolder: "Choisir un dossier",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "Dans l’onglet Network, clic droit sur le MP4 → Copy → Copy as cURL (bash), puis Ctrl+V.",
+        after: "Après le téléchargement",
+        nothing: "Rien",
+        openLocation: "Ouvrir l’emplacement du fichier",
+        openFile: "Ouvrir le fichier",
+        download: "Télécharger",
+        clear: "Effacer",
+        downloading: "Téléchargement…",
+        saved: "Enregistré {path} ({size})",
+        smallFile: "Remarque : fichier inférieur à 5 Mo ; les longs enregistrements sont généralement plus lourds."
+      },
+      de: {
+        heading: "Zoom-Aufzeichnungen herunterladen",
+        sub: "Dateinamen eingeben und Chrome Copy as cURL (bash) einfügen.",
+        fileName: "Dateiname:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "Ohne Endung wird .mp4 ergänzt.",
+        detected: "Erkannter Originalname: {name}",
+        parseError: "cURL konnte nicht gelesen werden.",
+        location: "Speicherort",
+        chooseFolder: "Ordner wählen",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "Im Tab Network MP4 rechts klicken → Copy → Copy as cURL (bash), dann Strg+V.",
+        after: "Nach dem Download",
+        nothing: "Nichts",
+        openLocation: "Dateispeicherort öffnen",
+        openFile: "Datei öffnen",
+        download: "Herunterladen",
+        clear: "Leeren",
+        downloading: "Wird heruntergeladen…",
+        saved: "Gespeichert {path} ({size})",
+        smallFile: "Hinweis: Datei unter 5 MB; lange Aufzeichnungen sind meist größer."
+      },
+      pt: {
+        heading: "Descarregar gravações do Zoom",
+        sub: "Introduza o nome do ficheiro e cole o Copy as cURL (bash) do Chrome.",
+        fileName: "Nome do ficheiro:",
+        placeholder: "yyyy-mm-dd_name_index",
+        extHint: "Se omitir a extensão, é adicionado .mp4.",
+        detected: "Nome original detetado: {name}",
+        parseError: "Não foi possível analisar o cURL.",
+        location: "Local de guardar",
+        chooseFolder: "Escolher pasta",
+        curlLabel: "Chrome Copy as cURL (bash)",
+        curlGuide: "No separador Network, clique com o botão direito no MP4 → Copy → Copy as cURL (bash), depois Ctrl+V.",
+        after: "Após a transferência",
+        nothing: "Nada",
+        openLocation: "Abrir localização do ficheiro",
+        openFile: "Abrir ficheiro",
+        download: "Descarregar",
+        clear: "Limpar",
+        downloading: "A descarregar…",
+        saved: "Guardado {path} ({size})",
+        smallFile: "Nota: o ficheiro tem menos de 5 MB; gravações longas costumam ser maiores."
+      }
+    };
+
+    const LANGS = [
+      ["en", "English"],
+      ["zh-Hant", "繁體中文"],
+      ["zh-Hans", "简体中文"],
+      ["ja", "日本語"],
+      ["ko", "한국어"],
+      ["es", "Español"],
+      ["fr", "Français"],
+      ["de", "Deutsch"],
+      ["pt", "Português"]
+    ];
+
     const $ = (id) => document.getElementById(id);
     let destDir = "";
     let detectedName = "";
+    let lang = "en";
 
-    const editable = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+    const editable = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
     document.addEventListener("copy", (e) => { if (!editable(e.target)) e.preventDefault(); });
     document.addEventListener("cut", (e) => { if (!editable(e.target)) e.preventDefault(); });
     document.addEventListener("selectstart", (e) => { if (!editable(e.target)) e.preventDefault(); });
     document.addEventListener("contextmenu", (e) => { if (!editable(e.target)) e.preventDefault(); });
     document.addEventListener("dragstart", (e) => { if (!editable(e.target)) e.preventDefault(); });
+
+    function t(key, vars) {
+      let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replaceAll("{" + k + "}", vars[k]); });
+      return s;
+    }
+
+    function detectLang() {
+      const saved = localStorage.getItem("zoom-loader-lang");
+      if (saved && I18N[saved]) return saved;
+      const nav = (navigator.language || "en").toLowerCase().replace("_", "-");
+      if (nav.startsWith("zh-tw") || nav.startsWith("zh-hk") || nav.startsWith("zh-hant") || nav.startsWith("zh-mo")) return "zh-Hant";
+      if (nav.startsWith("zh")) return "zh-Hans";
+      const short = nav.split("-")[0];
+      if (I18N[short]) return short;
+      return "en";
+    }
+
+    function applyI18n() {
+      document.documentElement.lang = lang === "zh-Hant" ? "zh-Hant" : lang === "zh-Hans" ? "zh-CN" : lang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+      });
+      $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
+      $("lang").setAttribute("aria-label", t("heading"));
+    }
+
+    LANGS.forEach(([code, label]) => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = label;
+      $("lang").appendChild(opt);
+    });
+    lang = detectLang();
+    $("lang").value = lang;
+    $("after").value = localStorage.getItem("zoom-loader-after") || "open-location";
+    applyI18n();
+
+    $("lang").addEventListener("change", () => {
+      lang = $("lang").value;
+      localStorage.setItem("zoom-loader-lang", lang);
+      applyI18n();
+    });
+    $("after").addEventListener("change", () => {
+      localStorage.setItem("zoom-loader-after", $("after").value);
+    });
 
     function setDir(path) {
       destDir = path || "";
@@ -114,7 +395,7 @@
       const r = await fetch("/api/pick-folder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ current: destDir })
+        body: JSON.stringify({ current: destDir, title: t("location") })
       });
       const data = await r.json();
       if (data.path) setDir(data.path);
@@ -130,13 +411,11 @@
       });
       const data = await r.json();
       if (!r.ok) {
-        $("detected").textContent = data.error || "Could not parse cURL.";
+        $("detected").textContent = data.error || t("parseError");
         return;
       }
       detectedName = data.filename || "";
-      $("detected").textContent = detectedName
-        ? ("Detected original name: " + detectedName)
-        : ".mp4 is added if you omit an extension.";
+      $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
     }
 
     let parseTimer;
@@ -149,7 +428,7 @@
       $("paste").value = "";
       $("name").value = "";
       detectedName = "";
-      $("detected").textContent = ".mp4 is added if you omit an extension.";
+      $("detected").textContent = t("extHint");
       $("status").textContent = "";
       $("status").className = "";
       $("barwrap").style.display = "none";
@@ -166,7 +445,7 @@
 
     $("dl").onclick = async () => {
       $("status").className = "";
-      $("status").textContent = "Downloading…";
+      $("status").textContent = t("downloading");
       $("dl").disabled = true;
       $("barwrap").style.display = "block";
       $("bar").style.width = "0";
@@ -177,7 +456,8 @@
           body: JSON.stringify({
             paste: $("paste").value,
             filename: $("name").value,
-            destDir
+            destDir,
+            afterAction: $("after").value
           })
         });
         const reader = r.body.getReader();
@@ -199,10 +479,8 @@
             } else if (ev.type === "done") {
               $("bar").style.width = "100%";
               $("status").className = "ok";
-              $("status").textContent = "Saved " + ev.path + " (" + fmt(ev.bytes) + ")";
-              if (ev.bytes < 5000000) {
-                $("status").textContent += "  Note: file is under 5 MB; long recordings are usually much larger.";
-              }
+              $("status").textContent = t("saved", { path: ev.path, size: fmt(ev.bytes) });
+              if (ev.bytes < 5000000) $("status").textContent += "  " + t("smallFile");
             } else if (ev.type === "error") {
               $("status").className = "err";
               $("status").textContent = ev.message;

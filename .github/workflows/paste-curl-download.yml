@@ -35,5 +35,5 @@ jobs:
       - run: bash build-windows.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: PasteCurlDownload-windows
-          path: tools/paste-curl-download/dist/PasteCurlDownload.exe
+          name: Zoom-loader-windows
+          path: tools/paste-curl-download/dist/Zoom-loader.exe

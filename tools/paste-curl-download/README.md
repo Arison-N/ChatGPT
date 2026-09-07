@@ -4,7 +4,7 @@ Paste Chrome **Copy as cURL (bash)** and save a Zoom recording under your own fi
 
 ## Windows: double-click `.exe`
 
-`tools/paste-curl-download/dist/PasteCurlDownload.exe` (or `Start.bat`)
+`tools/paste-curl-download/dist/Zoom-loader.exe` (or `Start.bat`)
 
 1. **File name:** e.g. `yyyy-mm-dd_name_index` (`.mp4` is added if missing)
 2. **File saving location:** Choose folder

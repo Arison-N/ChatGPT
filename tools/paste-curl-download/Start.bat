@@ -2,8 +2,8 @@
 setlocal
 cd /d "%~dp0"
 
-if exist "%~dp0dist\PasteCurlDownload.exe" (
-  start "" "%~dp0dist\PasteCurlDownload.exe"
+if exist "%~dp0dist\Zoom-loader.exe" (
+  start "" "%~dp0dist\Zoom-loader.exe"
   goto :eof
 )
 

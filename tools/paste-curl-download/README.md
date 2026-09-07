@@ -11,6 +11,10 @@ Paste Chrome **Copy as cURL (bash)** and save a Zoom recording under your own fi
 3. Paste Copy as cURL (bash)
 4. Download
 
+Windows 用 **WebView2** 喺 `Zoom-loader.exe` 入面開窗（Taskbar / Task Manager 顯示 Zoom-loader，唔係 Google Chrome）。未裝 WebView2 Runtime 先會 fallback 去 Chrome `--app`。
+
+**Check for updates** / **Update** pull a new `Zoom-loader.exe` from GitHub and restart. First install of this build is still a manual download; later changes can be applied in-app.
+
 Rebuild:
 
 ```bash

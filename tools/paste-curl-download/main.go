@@ -96,6 +96,25 @@ func findChrome() string {
 	return ""
 }
 
+var requestUIClose = func() {}
+
+func runChromeWindow(rawURL string, done <-chan struct{}) {
+	cmd, waitForExit, err := openAppWindow(rawURL)
+	if err != nil {
+		fatal("open window: " + err.Error())
+	}
+	if waitForExit && cmd != nil && cmd.Process != nil {
+		requestUIClose = func() {
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+		}
+		_ = cmd.Wait()
+		return
+	}
+	<-done
+}
+
 func openAppWindow(rawURL string) (cmd *exec.Cmd, waitForExit bool, err error) {
 	chrome := findChrome()
 	if chrome != "" {
@@ -326,28 +345,19 @@ func main() {
 	}()
 
 	rawURL := "http://" + ln.Addr().String() + "/"
-	cmd, waitForExit, err := openAppWindow(rawURL)
-	if err != nil {
-		fatal("open window: " + err.Error())
-	}
-
-	if waitForExit && cmd != nil && cmd.Process != nil {
-		go func() {
-			_ = cmd.Wait()
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		select {
+		case <-ctx.Done():
+		case <-sig:
+			requestUIClose()
 			shutdown()
-		}()
-	}
-
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	select {
-	case <-ctx.Done():
-	case <-sig:
-		if cmd != nil && cmd.Process != nil {
-			_ = cmd.Process.Kill()
 		}
-		shutdown()
-	}
+	}()
+
+	runUI(rawURL, ctx.Done())
+	shutdown()
 	_ = srv.Shutdown(context.Background())
 }
 

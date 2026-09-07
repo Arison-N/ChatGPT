@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
-  "notes": "In-app Check for updates / Update",
+  "version": "1.2.1",
+  "notes": "Host UI inside Zoom-loader.exe with WebView2 so Windows no longer treats the app as Chrome",
   "exe": "https://raw.githubusercontent.com/Arison-N/ChatGPT/cursor/paste-curl-downloader-304e/tools/paste-curl-download/dist/Zoom-loader.exe"
 }

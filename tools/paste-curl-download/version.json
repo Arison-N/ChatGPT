@@ -1,5 +1,5 @@
 {
-  "version": "1.2.5",
-  "notes": "Open file location works for UNC NAS paths (\\\\Arison_NAS\\...) instead of jumping to Documents",
+  "version": "1.2.6",
+  "notes": "Disable browser zoom (Ctrl+/Ctrl-) and other Chrome-like shortcuts so Zoom-loader behaves as a standalone app",
   "exe": "https://raw.githubusercontent.com/Arison-N/ChatGPT/cursor/paste-curl-downloader-304e/tools/paste-curl-download/dist/Zoom-loader.exe"
 }

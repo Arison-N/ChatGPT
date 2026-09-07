@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Zoom-loader</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,6 +28,9 @@
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-text-size-adjust: 100%;
     }
     body { display: flex; flex-direction: column; }
     header {
@@ -93,6 +96,33 @@
   </style>
 </head>
 <body>
+  <script>
+    (function () {
+      function isZoomChord(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
+        var k = e.key, c = e.code;
+        return k === "+" || k === "-" || k === "=" || k === "_" || k === "0" ||
+          c === "Equal" || c === "Minus" || c === "Digit0" ||
+          c === "NumpadAdd" || c === "NumpadSubtract" || c === "Numpad0";
+      }
+      function isBrowserChord(e) {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
+        var k = e.key.toLowerCase();
+        return k === "r" || k === "p" || k === "f" || k === "g" || k === "u" ||
+          k === "n" || k === "t" || k === "j" || k === "s" || k === "o";
+      }
+      document.addEventListener("keydown", function (e) {
+        if (isZoomChord(e) || isBrowserChord(e) ||
+            e.key === "F3" || e.key === "F5" || e.key === "F7" || e.key === "F12") {
+          e.preventDefault();
+        }
+      }, true);
+      document.addEventListener("wheel", function (e) {
+        if (e.ctrlKey || e.metaKey) e.preventDefault();
+      }, { passive: false, capture: true });
+      document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+    })();
+  </script>
   <header>
     <div class="header-text">
       <h1 data-i18n="heading"></h1>

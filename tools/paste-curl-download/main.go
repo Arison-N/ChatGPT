@@ -128,6 +128,8 @@ func openAppWindow(rawURL string) (cmd *exec.Cmd, waitForExit bool, err error) {
 			"--window-size=920,780",
 			"--no-first-run",
 			"--no-default-browser-check",
+			"--disable-pinch",
+			"--overscroll-history-navigation=0",
 		)
 		cmd.Stdout = nil
 		cmd.Stderr = nil

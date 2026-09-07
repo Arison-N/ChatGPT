@@ -32,6 +32,8 @@
       background: var(--card); color: var(--ink); border: 1px solid var(--line);
       border-radius: 8px; padding: 6px 8px; font: inherit; flex-shrink: 0;
     }
+    .update-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 22px 8px; }
+    #updStatus { font-size: 12px; color: var(--muted); }
     main { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
     label { display: block; font-size: 12px; letter-spacing: .02em; color: var(--muted); margin-bottom: 6px; }
     input, textarea, select {
@@ -75,6 +77,11 @@
     </div>
     <select id="lang" aria-label="Language"></select>
   </header>
+  <div class="update-bar">
+    <button id="checkUpdate" class="secondary" type="button" data-i18n="checkUpdate"></button>
+    <button id="doUpdate" class="secondary" type="button" data-i18n="update" disabled></button>
+    <span id="updStatus"></span>
+  </div>
   <main>
     <div>
       <label for="name" data-i18n="fileName"></label>
@@ -130,7 +137,16 @@
         clear: "Clear",
         downloading: "Downloading…",
         saved: "Saved {path} ({size})",
-        smallFile: "Note: file is under 5 MB; long recordings are usually much larger."
+        smallFile: "Note: file is under 5 MB; long recordings are usually much larger.",
+        checkUpdate: "Check for updates",
+        update: "Update",
+        currentVersion: "Version {version}",
+        checking: "Checking for updates…",
+        upToDate: "You’re up to date ({version})",
+        updateAvailable: "Update available: {latest} (now {current})",
+        updating: "Downloading update…",
+        restarting: "Restarting…",
+        updateFailed: "Update failed."
       },
       "zh-Hant": {
         heading: "下載 Zoom 錄影",
@@ -152,7 +168,16 @@
         clear: "清除",
         downloading: "下載中…",
         saved: "已儲存 {path}（{size}）",
-        smallFile: "注意：檔案細過 5 MB；長錄影通常會大很多。"
+        smallFile: "注意：檔案細過 5 MB；長錄影通常會大很多。",
+        checkUpdate: "檢查更新",
+        update: "更新",
+        currentVersion: "版本 {version}",
+        checking: "正在檢查更新…",
+        upToDate: "已是最新版本（{version}）",
+        updateAvailable: "有新版本：{latest}（目前 {current}）",
+        updating: "正在下載更新…",
+        restarting: "正在重新啟動…",
+        updateFailed: "更新失敗。"
       },
       "zh-Hans": {
         heading: "下载 Zoom 录像",
@@ -174,7 +199,16 @@
         clear: "清除",
         downloading: "正在下载…",
         saved: "已保存 {path}（{size}）",
-        smallFile: "注意：文件小于 5 MB；较长录像通常会大很多。"
+        smallFile: "注意：文件小于 5 MB；较长录像通常会大很多。",
+        checkUpdate: "检查更新",
+        update: "更新",
+        currentVersion: "版本 {version}",
+        checking: "正在检查更新…",
+        upToDate: "已是最新版本（{version}）",
+        updateAvailable: "有新版本：{latest}（当前 {current}）",
+        updating: "正在下载更新…",
+        restarting: "正在重新启动…",
+        updateFailed: "更新失败。"
       },
       ja: {
         heading: "Zoom 録画をダウンロード",
@@ -196,7 +230,16 @@
         clear: "クリア",
         downloading: "ダウンロード中…",
         saved: "保存しました {path}（{size}）",
-        smallFile: "注意：5 MB 未満です。長い録画は通常もっと大きいです。"
+        smallFile: "注意：5 MB 未満です。長い録画は通常もっと大きいです。",
+        checkUpdate: "更新を確認",
+        update: "更新",
+        currentVersion: "バージョン {version}",
+        checking: "更新を確認しています…",
+        upToDate: "最新です（{version}）",
+        updateAvailable: "更新があります: {latest}（現在 {current}）",
+        updating: "更新をダウンロード中…",
+        restarting: "再起動しています…",
+        updateFailed: "更新に失敗しました。"
       },
       ko: {
         heading: "Zoom 녹화 다운로드",
@@ -218,7 +261,16 @@
         clear: "지우기",
         downloading: "다운로드 중…",
         saved: "저장됨 {path} ({size})",
-        smallFile: "참고: 파일이 5 MB 미만입니다. 긴 녹화는 보통 훨씬 큽니다."
+        smallFile: "참고: 파일이 5 MB 미만입니다. 긴 녹화는 보통 훨씬 큽니다.",
+        checkUpdate: "업데이트 확인",
+        update: "업데이트",
+        currentVersion: "버전 {version}",
+        checking: "업데이트를 확인하는 중…",
+        upToDate: "최신 버전입니다 ({version})",
+        updateAvailable: "업데이트 가능: {latest} (현재 {current})",
+        updating: "업데이트를 다운로드하는 중…",
+        restarting: "다시 시작하는 중…",
+        updateFailed: "업데이트에 실패했습니다."
       },
       es: {
         heading: "Descargar grabaciones de Zoom",
@@ -240,7 +292,16 @@
         clear: "Borrar",
         downloading: "Descargando…",
         saved: "Guardado {path} ({size})",
-        smallFile: "Nota: el archivo pesa menos de 5 MB; las grabaciones largas suelen ser mayores."
+        smallFile: "Nota: el archivo pesa menos de 5 MB; las grabaciones largas suelen ser mayores.",
+        checkUpdate: "Buscar actualizaciones",
+        update: "Actualizar",
+        currentVersion: "Versión {version}",
+        checking: "Buscando actualizaciones…",
+        upToDate: "Está actualizado ({version})",
+        updateAvailable: "Actualización disponible: {latest} (ahora {current})",
+        updating: "Descargando actualización…",
+        restarting: "Reiniciando…",
+        updateFailed: "Error al actualizar."
       },
       fr: {
         heading: "Télécharger les enregistrements Zoom",
@@ -262,7 +323,16 @@
         clear: "Effacer",
         downloading: "Téléchargement…",
         saved: "Enregistré {path} ({size})",
-        smallFile: "Remarque : fichier inférieur à 5 Mo ; les longs enregistrements sont généralement plus lourds."
+        smallFile: "Remarque : fichier inférieur à 5 Mo ; les longs enregistrements sont généralement plus lourds.",
+        checkUpdate: "Rechercher des mises à jour",
+        update: "Mettre à jour",
+        currentVersion: "Version {version}",
+        checking: "Recherche de mises à jour…",
+        upToDate: "Vous êtes à jour ({version})",
+        updateAvailable: "Mise à jour disponible : {latest} (actuellement {current})",
+        updating: "Téléchargement de la mise à jour…",
+        restarting: "Redémarrage…",
+        updateFailed: "Échec de la mise à jour."
       },
       de: {
         heading: "Zoom-Aufzeichnungen herunterladen",
@@ -284,7 +354,16 @@
         clear: "Leeren",
         downloading: "Wird heruntergeladen…",
         saved: "Gespeichert {path} ({size})",
-        smallFile: "Hinweis: Datei unter 5 MB; lange Aufzeichnungen sind meist größer."
+        smallFile: "Hinweis: Datei unter 5 MB; lange Aufzeichnungen sind meist größer.",
+        checkUpdate: "Nach Updates suchen",
+        update: "Aktualisieren",
+        currentVersion: "Version {version}",
+        checking: "Suche nach Updates…",
+        upToDate: "Sie sind auf dem neuesten Stand ({version})",
+        updateAvailable: "Update verfügbar: {latest} (aktuell {current})",
+        updating: "Update wird heruntergeladen…",
+        restarting: "Neustart…",
+        updateFailed: "Update fehlgeschlagen."
       },
       pt: {
         heading: "Descarregar gravações do Zoom",
@@ -306,7 +385,16 @@
         clear: "Limpar",
         downloading: "A descarregar…",
         saved: "Guardado {path} ({size})",
-        smallFile: "Nota: o ficheiro tem menos de 5 MB; gravações longas costumam ser maiores."
+        smallFile: "Nota: o ficheiro tem menos de 5 MB; gravações longas costumam ser maiores.",
+        checkUpdate: "Procurar atualizações",
+        update: "Atualizar",
+        currentVersion: "Versão {version}",
+        checking: "A procurar atualizações…",
+        upToDate: "Está atualizado ({version})",
+        updateAvailable: "Atualização disponível: {latest} (atual {current})",
+        updating: "A descarregar atualização…",
+        restarting: "A reiniciar…",
+        updateFailed: "Falha na atualização."
       }
     };
 
@@ -326,6 +414,8 @@
     let destDir = "";
     let detectedName = "";
     let lang = "en";
+    let appVersion = "";
+    let checkState = { kind: "current" };
 
     const editable = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
     document.addEventListener("copy", (e) => { if (!editable(e.target)) e.preventDefault(); });
@@ -361,6 +451,19 @@
       });
       $("detected").textContent = detectedName ? t("detected", { name: detectedName }) : t("extHint");
       $("lang").setAttribute("aria-label", t("heading"));
+      renderUpd();
+    }
+
+    function renderUpd() {
+      const el = $("updStatus");
+      const s = checkState;
+      if (s.kind === "checking") el.textContent = t("checking");
+      else if (s.kind === "upToDate") el.textContent = t("upToDate", { version: s.version || appVersion });
+      else if (s.kind === "available") el.textContent = t("updateAvailable", { latest: s.latest, current: s.current });
+      else if (s.kind === "updating") el.textContent = t("updating");
+      else if (s.kind === "restarting") el.textContent = t("restarting");
+      else if (s.kind === "failed") el.textContent = t("updateFailed") + (s.error ? " " + s.error : "");
+      else el.textContent = appVersion ? t("currentVersion", { version: appVersion }) : "";
     }
 
     LANGS.forEach(([code, label]) => {
@@ -389,7 +492,81 @@
       $("dirpath").title = destDir;
     }
 
-    fetch("/api/defaults").then(r => r.json()).then(d => { setDir(d.downloadDir || ""); });
+    fetch("/api/defaults").then(r => r.json()).then(d => {
+      setDir(d.downloadDir || "");
+      appVersion = d.version || "";
+      renderUpd();
+    });
+
+    $("checkUpdate").onclick = async () => {
+      $("doUpdate").disabled = true;
+      checkState = { kind: "checking" };
+      renderUpd();
+      try {
+        const r = await fetch("/api/check-update");
+        const data = await r.json();
+        if (data.error) {
+          checkState = { kind: "failed", error: data.error };
+          renderUpd();
+          return;
+        }
+        appVersion = data.current || appVersion;
+        if (data.updateAvailable) {
+          checkState = { kind: "available", latest: data.latest, current: data.current };
+          $("doUpdate").disabled = false;
+        } else {
+          checkState = { kind: "upToDate", version: data.current };
+        }
+        renderUpd();
+      } catch (e) {
+        checkState = { kind: "failed", error: String(e) };
+        renderUpd();
+      }
+    };
+
+    $("doUpdate").onclick = async () => {
+      $("doUpdate").disabled = true;
+      $("checkUpdate").disabled = true;
+      checkState = { kind: "updating" };
+      renderUpd();
+      $("barwrap").style.display = "block";
+      $("bar").style.width = "0";
+      try {
+        const r = await fetch("/api/apply-update", { method: "POST" });
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const ev = JSON.parse(line);
+            if (ev.type === "progress") {
+              const pct = ev.total > 0 ? Math.min(100, (ev.written / ev.total) * 100) : 0;
+              $("bar").style.width = pct + "%";
+              $("status").textContent = fmt(ev.written) + (ev.total > 0 ? " / " + fmt(ev.total) : "");
+            } else if (ev.type === "done") {
+              $("bar").style.width = "100%";
+              checkState = { kind: "restarting" };
+              renderUpd();
+            } else if (ev.type === "error") {
+              checkState = { kind: "failed", error: ev.message };
+              renderUpd();
+              $("checkUpdate").disabled = false;
+            }
+          }
+        }
+      } catch (e) {
+        checkState = { kind: "failed", error: String(e) };
+        renderUpd();
+        $("checkUpdate").disabled = false;
+        $("doUpdate").disabled = false;
+      }
+    };
 
     $("browse").onclick = async () => {
       const r = await fetch("/api/pick-folder", {

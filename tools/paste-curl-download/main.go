@@ -156,7 +156,71 @@ func main() {
 		_, _ = w.Write(b)
 	})
 	mux.HandleFunc("/api/defaults", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]string{"downloadDir": defaultDownloadDir()})
+		writeJSON(w, 200, map[string]string{"downloadDir": defaultDownloadDir(), "version": Version})
+	})
+	mux.HandleFunc("/api/check-update", func(w http.ResponseWriter, r *http.Request) {
+		remote, _, err := fetchRemoteVersion()
+		if err != nil {
+			writeJSON(w, 200, map[string]any{"current": Version, "error": err.Error()})
+			return
+		}
+		writeJSON(w, 200, map[string]any{
+			"current":         Version,
+			"latest":          remote.Version,
+			"notes":           remote.Notes,
+			"updateAvailable": versionNewer(remote.Version, Version),
+		})
+	})
+	mux.HandleFunc("/api/apply-update", func(w http.ResponseWriter, r *http.Request) {
+		remote, _, err := fetchRemoteVersion()
+		if err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		if !versionNewer(remote.Version, Version) {
+			writeJSON(w, 200, map[string]any{"current": Version, "latest": remote.Version, "updateAvailable": false})
+			return
+		}
+		exe, err := os.Executable()
+		if err != nil {
+			writeJSON(w, 500, map[string]string{"error": err.Error()})
+			return
+		}
+		newPath := exe + ".new"
+		w.Header().Set("Content-Type", "application/x-ndjson")
+		w.Header().Set("Cache-Control", "no-cache")
+		fl, _ := w.(http.Flusher)
+		enc := json.NewEncoder(w)
+		enc.SetEscapeHTML(false)
+		send := func(v any) {
+			_ = enc.Encode(v)
+			if fl != nil {
+				fl.Flush()
+			}
+		}
+		last := time.Now()
+		err = downloadUpdate(remote.Exe, newPath, func(written, total int64) {
+			if time.Since(last) < 200*time.Millisecond && written != total {
+				return
+			}
+			last = time.Now()
+			send(map[string]any{"type": "progress", "written": written, "total": total})
+		})
+		if err != nil {
+			_ = os.Remove(newPath)
+			send(map[string]any{"type": "error", "message": err.Error()})
+			return
+		}
+		if err := restartWithNewBinary(exe, newPath); err != nil {
+			send(map[string]any{"type": "error", "message": err.Error()})
+			return
+		}
+		send(map[string]any{"type": "done", "restarting": true, "version": remote.Version})
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			shutdown()
+			os.Exit(0)
+		}()
 	})
 	mux.HandleFunc("/api/pick-folder", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {

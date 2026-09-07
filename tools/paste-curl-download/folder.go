@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"unicode/utf8"
 )
 
 func pickFolder(current, title string) (string, error) {
@@ -22,50 +20,6 @@ func pickFolder(current, title string) (string, error) {
 	default:
 		return pickFolderLinux(current, title)
 	}
-}
-
-func pickFolderWindows(current, title string) (string, error) {
-	dir, err := os.MkdirTemp("", "zoom-loader-pick-*")
-	if err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(dir)
-
-	csPath := filepath.Join(dir, "folderpicker.cs")
-	psPath := filepath.Join(dir, "pickfolder.ps1")
-	outPath := filepath.Join(dir, "path.txt")
-	if err := os.WriteFile(csPath, folderPickerCS, 0o644); err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(psPath, pickFolderPS1, 0o644); err != nil {
-		return "", err
-	}
-
-	cmd := exec.Command("powershell",
-		"-NoProfile", "-STA", "-ExecutionPolicy", "Bypass",
-		"-File", psPath,
-		"-OutPath", outPath,
-		"-Initial", current,
-		"-CsPath", csPath,
-		"-Title", title,
-	)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("folder picker: %v\n%s", err, strings.TrimSpace(string(out)))
-	}
-	raw, err := os.ReadFile(outPath)
-	if err != nil {
-		return "", nil // cancelled
-	}
-	path := strings.TrimSpace(string(raw))
-	if path == "" {
-		return "", nil
-	}
-	if !utf8.ValidString(path) {
-		return "", fmt.Errorf("folder path is not valid UTF-8")
-	}
-	return path, nil
 }
 
 func pickFolderDarwin(current, title string) (string, error) {

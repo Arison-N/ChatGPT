@@ -13,7 +13,7 @@ Paste Chrome **Copy as cURL (bash)** and save a Zoom recording under your own fi
 
 Windows 用 **WebView2** 喺 `Zoom-loader.exe` 入面開窗（Taskbar / Task Manager 顯示 Zoom-loader，唔係 Google Chrome）。未裝 WebView2 Runtime 先會 fallback 去 Chrome `--app`。
 
-UI 跟 Windows 顯示語言自動切（無語言選單）。上次選擇嘅儲存資料夾會記住，中文路徑以 UTF-8 保存。
+UI 跟 Windows 顯示語言自動切，右上可選 English (ENG) / Traditional Chinese (ZH-hk) / Simplified Chinese (ZH-cn)。字體用 Google Noto Sans / Noto Sans HK / Noto Sans SC。Choose folder 用 Windows Explorer dialog，唔再開 PowerShell 視窗。
 
 **Check for updates** / **Update** pull a new `Zoom-loader.exe` from GitHub and restart. First install of this build is still a manual download; later changes can be applied in-app.
 

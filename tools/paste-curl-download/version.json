@@ -1,5 +1,5 @@
 {
-  "version": "1.2.2",
-  "notes": "Fix crushed header layout; drop language switcher; remember last folder path including Chinese names",
+  "version": "1.2.3",
+  "notes": "Choose folder no longer opens a PowerShell window; language selector at top-right (ENG / ZH-hk / ZH-cn); Noto Sans fonts",
   "exe": "https://raw.githubusercontent.com/Arison-N/ChatGPT/cursor/paste-curl-downloader-304e/tools/paste-curl-download/dist/Zoom-loader.exe"
 }
